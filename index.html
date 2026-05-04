@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Room Monitor Pro v2.1</title>
+    <title>Room Monitor Pro v2.2</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -25,7 +25,6 @@
         .card h3 { margin: 0; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
         .card p { margin: 5px 0 0; font-size: 1.1rem; font-weight: 700; color: var(--text); }
 
-        /* Skála Útmutató */
         .y-axis-guide {
             display: flex; justify-content: space-between; font-size: 0.65rem; color: #64748b;
             padding: 5px 10px; background: rgba(30, 41, 59, 0.5); border-radius: 5px; margin-bottom: 10px;
@@ -40,7 +39,7 @@
         .playhead { position: absolute; left: 50%; top: 45px; bottom: 35px; width: 2px; background: var(--primary); box-shadow: 0 0 15px var(--primary); z-index: 100; pointer-events: none; }
         .add-event-btn { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 32px; height: 32px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 1.4rem; cursor: pointer; z-index: 101; }
 
-        .chart-viewport { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .chart-viewport { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
         .chart-wrapper { width: 2000px; height: 320px; padding: 0 50%; box-sizing: border-box; position: relative; }
 
         .event-tag { position: absolute; top: 55px; transform: translateX(-50%); background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer; z-index: 50; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
@@ -67,7 +66,7 @@
 
     <div class="y-axis-guide">
         <div id="guide-left" style="opacity: 0.3"><span style="color:var(--temp)">Hő (15-35°C)</span> | <span style="color:var(--lux)">Fény (0-100lx)</span></div>
-        <div id="guide-right"><span style="color:var(--primary)">Zaj (0-100%)</span></div>
+        <div id="guide-right"><span style="color:var(--primary)">Skála: 0 - 100</span></div>
     </div>
 
     <div class="minimap-wrapper" id="minimap-area">
@@ -105,11 +104,13 @@
         const minimapArea = document.getElementById('minimap-area');
         let events = [];
         let activeEventId = null;
+        window.currentIdx = 0; // Fix kezdeti érték
 
         document.getElementById('header-date').innerText = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
 
         const generateData = () => {
             const data = []; const now = new Date();
+            // A szimulációhoz fix pontokat használunk, hogy elkerüljük az időeltolódást
             for (let i = 150; i >= 0; i--) {
                 const time = new Date(now.getTime() - i * 10 * 60000);
                 data.push({
@@ -124,27 +125,33 @@
         };
         const mockData = generateData();
 
-        const commonScales = {
-            x: { grid: { color: '#334155' }, ticks: { color: '#64748b' } },
-            y: { position: 'right', display: false, min: 0, max: 100 },
-            y1: { position: 'left', display: false, min: 0, max: 100 }
-        };
-
+        // CHART KONFIGURÁCIÓ
         const mainChart = new Chart(document.getElementById('mainChart'), {
             type: 'line',
             data: {
                 labels: mockData.map(d => d.t),
                 datasets: [
-                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', tension: 0.4, pointRadius: 0 },
-                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 4 },
+                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', tension: 0.4, pointRadius: 0, yAxisID: 'y' },
+                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 4, yAxisID: 'y' },
                     { label: 'Hő', data: mockData.map(d => (d.temp - 15) * 5), borderColor: '#fbbf24', hidden: true, tension: 0.4, pointRadius: 0, yAxisID: 'y1' },
-                    { label: 'Fény', data: mockData.map(d => d.lux), borderColor: '#a855f7', hidden: true, tension: 0.4, pointRadius: 0, yAxisID: 'y1' }
+                    { label: 'Fény', data: mockData.map(d => d.lux * 10), borderColor: '#a855f7', hidden: true, tension: 0.4, pointRadius: 0, yAxisID: 'y1' }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { ...commonScales, x: { display: true, grid: { color: '#334155' }, ticks: { color: '#64748b' } } }
+                scales: { 
+                    x: { display: true, grid: { color: '#334155' }, ticks: { color: '#64748b' } },
+                    y: { 
+                        position: 'right', 
+                        display: true, 
+                        min: 0, 
+                        max: 100, 
+                        grid: { color: '#334155' }, 
+                        ticks: { color: '#64748b', stepSize: 20 } 
+                    },
+                    y1: { position: 'left', display: false, min: 0, max: 100, grid: { display: false } }
+                }
             }
         });
 
@@ -156,30 +163,25 @@
                     { data: mockData.map(d => d.noise), borderColor: '#38bdf8', borderWidth: 1, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', pointRadius: 0, tension: 0.4 },
                     { data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 1 },
                     { data: mockData.map(d => (d.temp - 15) * 5), borderColor: '#fbbf24', hidden: true, borderWidth: 1, pointRadius: 0 },
-                    { data: mockData.map(d => d.lux), borderColor: '#a855f7', hidden: true, borderWidth: 1, pointRadius: 0 }
+                    { data: mockData.map(d => d.lux * 10), borderColor: '#a855f7', hidden: true, borderWidth: 1, pointRadius: 0 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 0, max: 100 } } }
         });
 
+        // GÖRGETÉS ÉS SZINKRONIZÁCIÓ
         viewport.addEventListener('scroll', () => {
             const scrollPercent = viewport.scrollLeft / (viewport.scrollWidth - viewport.clientWidth);
             const index = Math.round(scrollPercent * (mockData.length - 1));
             
             if(mockData[index]) {
                 timeDisplay.innerText = mockData[index].t;
-                window.currentIdx = index; // Pontos index a tű alatt
+                window.currentIdx = index; // Ez az alapja a mentésnek!
             }
 
             const indWidth = (viewport.clientWidth / viewport.scrollWidth) * 100;
             indicator.style.width = indWidth + "%";
             indicator.style.left = (scrollPercent * (100 - indWidth)) + "%";
-        });
-
-        minimapArea.addEventListener('click', (e) => {
-            const rect = minimapArea.getBoundingClientRect();
-            const pct = (e.clientX - rect.left) / rect.width;
-            viewport.scrollTo({ left: (viewport.scrollWidth * pct) - (viewport.clientWidth / 2), behavior: 'smooth' });
         });
 
         function toggleDataset(idx) {
@@ -209,6 +211,7 @@
             } else {
                 input.value = '';
                 delBtn.style.display = 'none';
+                // Mindig a tű alatt látható pontos időt használjuk
                 document.getElementById('modal-time-label').innerText = mockData[window.currentIdx].t;
             }
             modal.style.display = 'block';
@@ -217,10 +220,11 @@
         function saveEvent() {
             const txt = document.getElementById('event-input').value;
             if(!txt) return;
+            
             if(activeEventId) {
                 events.find(e => e.id === activeEventId).text = txt;
             } else {
-                // A tű alatti pontos index használata a mentéshez
+                // Itt rögzítjük a tű alatti indexet, ami garantálja, hogy oda kerül, amit látsz
                 events.push({ id: Date.now(), idx: window.currentIdx, text: txt });
             }
             renderEvents(); closeModal();
@@ -234,6 +238,7 @@
         function renderEvents() {
             document.querySelectorAll('.event-tag').forEach(t => t.remove());
             events.forEach(ev => {
+                // Megkeressük az indexhez tartozó pixel pozíciót a grafikonon
                 const x = mainChart.scales.x.getPixelForValue(mockData[ev.idx].t);
                 const tag = document.createElement('div');
                 tag.className = 'event-tag'; tag.innerText = ev.text; tag.style.left = x + "px";
@@ -252,7 +257,7 @@
 
         window.onload = () => { 
             viewport.scrollLeft = viewport.scrollWidth; 
-            setTimeout(() => viewport.dispatchEvent(new Event('scroll')), 100);
+            setTimeout(() => viewport.dispatchEvent(new Event('scroll')), 200);
         };
     </script>
 </body>
