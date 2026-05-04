@@ -3,80 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Room Analytics v2.3</title>
+    <title>Room Analytics v2.4</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
             --primary: #38bdf8; --accent: #f43f5e; --temp: #fbbf24; --lux: #a855f7; --grid: #334155;
         }
-        
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .view-toggle { background: var(--card); border: 1px solid var(--grid); color: var(--text); padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; }
-
-        /* Központi tű adatai */
         .playhead-display { text-align: center; margin-bottom: 10px; }
-        .playhead-time { font-size: 1.8rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; line-height: 1; }
-        .playhead-stats { display: flex; justify-content: center; gap: 10px; font-size: 0.8rem; font-weight: 600; margin-top: 5px; height: 1rem; }
-
+        .playhead-time { font-size: 1.8rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+        .playhead-stats { display: flex; justify-content: center; gap: 10px; font-size: 0.8rem; font-weight: 600; margin-top: 5px; }
         .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
         .card { background: var(--card); padding: 10px; border-radius: 12px; border: 2px solid transparent; }
-        .card.active[data-idx="0"] { border-color: var(--primary); }
-        .card.active[data-idx="2"] { border-color: var(--temp); }
-        .card.active[data-idx="1"] { border-color: var(--accent); }
-        .card.active[data-idx="3"] { border-color: var(--lux); }
-        .card h3 { margin: 0; font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; }
-        .card p { margin: 2px 0 0; font-size: 1rem; font-weight: 700; }
-
+        .card.active { border-width: 2px; }
+        .card[data-idx="0"].active { border-color: var(--primary); }
+        .card[data-idx="2"].active { border-color: var(--temp); }
+        .card[data-idx="1"].active { border-color: var(--accent); }
+        .card[data-idx="3"].active { border-color: var(--lux); }
         .timeline-container { position: relative; width: 100%; background: var(--card); border-radius: 15px; border: 1px solid var(--grid); overflow: hidden; }
         .playhead { position: absolute; left: 50%; top: 40px; bottom: 30px; width: 2px; background: var(--primary); box-shadow: 0 0 15px var(--primary); z-index: 100; pointer-events: none; }
-        .add-event-btn { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 1.2rem; cursor: pointer; z-index: 101; }
-
-        .chart-viewport { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .chart-wrapper { width: 2500px; height: 320px; padding: 0 50%; box-sizing: border-box; position: relative; }
-
-        /* Spektrum nézet (image.png stílus) */
-        .spectrum-view { display: none; flex-direction: column; gap: 5px; padding: 20px 0; }
-        .spectrum-row { height: 40px; width: 100%; display: flex; border-radius: 4px; overflow: hidden; background: #000; }
+        .add-event-btn { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 1.2rem; z-index: 101; cursor: pointer; }
+        .chart-viewport { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
+        .chart-wrapper { width: 3000px; height: 350px; padding: 0 50%; box-sizing: border-box; position: relative; }
+        .spectrum-view { display: none; flex-direction: column; gap: 4px; padding: 60px 0 20px 0; }
+        .spectrum-row { height: 35px; width: 100%; display: flex; background: #000; border-radius: 2px; }
         .spec-pixel { flex: 1; height: 100%; }
-
-        .event-tag { position: absolute; top: 55px; transform: translateX(-50%); background: var(--accent); color: white; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; cursor: pointer; z-index: 50; }
-
-        #event-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 20px; border-radius: 20px; z-index: 1000; width: 80%; max-width: 300px; box-shadow: 0 0 50px #000; }
-        input { width: 100%; background: var(--bg); border: 1px solid var(--grid); color: white; padding: 12px; margin: 15px 0; border-radius: 10px; }
+        .event-tag { position: absolute; top: 45px; transform: translateX(-50%); background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; z-index: 110; pointer-events: auto; }
+        #event-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 20px; border-radius: 20px; z-index: 1000; width: 80%; max-width: 300px; }
+        input { width: 100%; background: var(--bg); border: 1px solid var(--grid); color: white; padding: 12px; margin: 15px 0; border-radius: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
-
     <header>
-        <div class="date-display" id="header-date">2026. Május 04.</div>
-        <button class="view-toggle" onclick="toggleViewMode()">Mód: Grafikon</button>
+        <div class="date-display" id="header-date">--</div>
+        <button class="view-toggle" onclick="toggleViewMode()">Mód: Spektrum</button>
     </header>
-
     <div class="dashboard">
         <div class="card active" data-idx="0" onclick="toggleDataset(0)"><h3>Zaj</h3><p id="live-noise">-- %</p></div>
         <div class="card" data-idx="2" onclick="toggleDataset(2)"><h3>Hő</h3><p id="live-temp">-- °C</p></div>
         <div class="card active" data-idx="1" onclick="toggleDataset(1)"><h3>Mozgás</h3><p id="live-move">Nincs</p></div>
         <div class="card" data-idx="3" onclick="toggleDataset(3)"><h3>Fény</h3><p id="live-lux">-- lx</p></div>
     </div>
-
     <div class="playhead-display">
-        <div class="playhead-time" id="center-time">--:--</div>
+        <div class="playhead-time" id="center-time">00:00</div>
         <div class="playhead-stats" id="center-stats"></div>
     </div>
-
     <div class="timeline-container">
         <button class="add-event-btn" onclick="openEventModal()">+</button>
         <div class="playhead"></div>
-        
         <div class="chart-viewport" id="viewport">
             <div class="chart-wrapper" id="chart-holder">
-                <!-- Standard Grafikon -->
                 <canvas id="mainChart"></canvas>
-                
-                <!-- Spektrum Nézet (image.png stílus) -->
                 <div id="spectrum-container" class="spectrum-view">
                     <div class="spectrum-row" id="row-noise"></div>
                     <div class="spectrum-row" id="row-temp"></div>
@@ -86,15 +66,14 @@
             </div>
         </div>
     </div>
-
     <div id="event-modal">
-        <h3 id="modal-time-label" style="margin:0; font-size: 1rem;">--:--</h3>
-        <input type="text" id="event-input" placeholder="Megjegyzés...">
+        <h3 id="modal-time-label" style="margin:0; color:var(--primary)">00:00</h3>
+        <input type="text" id="event-input" placeholder="Esemény leírása...">
         <div style="display:flex; gap:10px">
-            <button onclick="saveEvent()" style="background:var(--primary); border:none; color:white; padding:10px; border-radius:8px; flex:2">Mentés</button>
-            <button id="del-btn" onclick="deleteEvent()" style="background:var(--accent); border:none; color:white; padding:10px; border-radius:8px; display:none">🗑️</button>
+            <button onclick="saveEvent()" style="background:var(--primary); border:none; color:white; padding:12px; border-radius:10px; flex:2; font-weight:bold;">Mentés</button>
+            <button id="del-btn" onclick="deleteEvent()" style="background:var(--accent); border:none; color:white; padding:12px; border-radius:10px; display:none">🗑️</button>
         </div>
-        <button onclick="closeModal()" style="background:none; border:none; color:#64748b; width:100%; margin-top:10px">Mégse</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:#64748b; width:100%; margin-top:15px">Mégse</button>
     </div>
 
     <script>
@@ -102,25 +81,27 @@
         const timeDisplay = document.getElementById('center-time');
         const statsDisplay = document.getElementById('center-stats');
         let events = [];
-        let viewMode = 'chart'; // 'chart' vagy 'spectrum'
+        let viewMode = 'spectrum';
+        window.currentIdx = 0;
+
+        document.getElementById('header-date').innerText = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
 
         const generateData = () => {
             const data = []; const now = new Date();
-            for (let i = 200; i >= 0; i--) {
-                const time = new Date(now.getTime() - i * 8 * 60000);
+            for (let i = 288; i >= 0; i--) { // 24 óra 5 perces bontásban
+                const time = new Date(now.getTime() - i * 5 * 60000);
                 data.push({
                     t: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    noise: Math.random() * 40 + 10,
-                    temp: 20 + Math.random() * 5,
-                    lux: Math.random() * 50,
-                    move: Math.random() > 0.97 ? 50 : 0
+                    noise: Math.random() * 30 + 5,
+                    temp: 22 + Math.random() * 3,
+                    lux: Math.random() * 100,
+                    move: Math.random() > 0.98 ? 80 : 0
                 });
             }
             return data;
         };
         const mockData = generateData();
 
-        // Grafikon setup
         const mainChart = new Chart(document.getElementById('mainChart'), {
             type: 'line',
             data: {
@@ -136,13 +117,12 @@
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: { 
-                    x: { grid: { color: '#334155' }, ticks: { color: '#64748b' } },
+                    x: { display: true, grid: { color: '#334155' }, ticks: { color: '#64748b', maxRotation: 0 } },
                     y: { position: 'right', min: 0, max: 100, ticks: { color: '#64748b' }, grid: { color: '#334155' } }
                 }
             }
         });
 
-        // Spektrum generálás (image.png)
         function buildSpectrum() {
             const rows = {
                 noise: { el: document.getElementById('row-noise'), color: '56, 189, 248' },
@@ -150,50 +130,28 @@
                 lux: { el: document.getElementById('row-lux'), color: '168, 85, 247' },
                 move: { el: document.getElementById('row-move'), color: '244, 63, 94' }
             };
-            
             Object.values(rows).forEach(r => r.el.innerHTML = '');
-            
             mockData.forEach(d => {
-                const createPixel = (val, color, max) => {
+                const addPix = (el, val, col, max) => {
                     const p = document.createElement('div');
                     p.className = 'spec-pixel';
-                    p.style.backgroundColor = `rgba(${color}, ${val/max})`;
-                    return p;
+                    p.style.backgroundColor = `rgba(${col}, ${val/max})`;
+                    el.appendChild(p);
                 };
-                rows.noise.el.appendChild(createPixel(d.noise, rows.noise.color, 100));
-                rows.temp.el.appendChild(createPixel(d.temp - 15, rows.temp.color, 15));
-                rows.lux.el.appendChild(createPixel(d.lux, rows.lux.color, 100));
-                rows.move.el.appendChild(createPixel(d.move, rows.move.color, 100));
+                addPix(rows.noise.el, d.noise, rows.noise.color, 100);
+                addPix(rows.temp.el, d.temp - 18, rows.temp.color, 10);
+                addPix(rows.lux.el, d.lux, rows.lux.color, 150);
+                addPix(rows.move.el, d.move, rows.move.color, 100);
             });
         }
 
-        // Nézet váltás
-        function toggleViewMode() {
-            const btn = document.querySelector('.view-toggle');
-            if(viewMode === 'chart') {
-                viewMode = 'spectrum';
-                btn.innerText = 'Mód: Spektrum';
-                document.getElementById('mainChart').style.display = 'none';
-                document.getElementById('spectrum-container').style.display = 'flex';
-                buildSpectrum();
-            } else {
-                viewMode = 'chart';
-                btn.innerText = 'Mód: Grafikon';
-                document.getElementById('mainChart').style.display = 'block';
-                document.getElementById('spectrum-container').style.display = 'none';
-            }
-        }
-
-        // Navigáció & Stat kiírás a tűnél
         viewport.addEventListener('scroll', () => {
             const scrollPercent = viewport.scrollLeft / (viewport.scrollWidth - viewport.clientWidth);
-            const index = Math.round(scrollPercent * (mockData.length - 1));
+            const index = Math.min(Math.max(Math.round(scrollPercent * (mockData.length - 1)), 0), mockData.length - 1);
             const d = mockData[index];
-            
             if(d) {
                 timeDisplay.innerText = d.t;
-                window.currentIdx = index; // Fix index mentéshez!
-                
+                window.currentIdx = index;
                 statsDisplay.innerHTML = `
                     <span style="color:var(--primary)">${Math.round(d.noise)}%</span>
                     <span style="color:var(--temp)">${d.temp.toFixed(1)}°C</span>
@@ -202,14 +160,19 @@
             }
         });
 
-        function toggleDataset(idx) {
-            const cards = document.querySelectorAll('.card');
-            if(mainChart.isDatasetVisible(idx)) { 
-                mainChart.hide(idx); cards[idx].classList.remove('active');
-            } else { 
-                mainChart.show(idx); cards[idx].classList.add('active');
+        function toggleViewMode() {
+            const btn = document.querySelector('.view-toggle');
+            if(viewMode === 'chart') {
+                viewMode = 'spectrum'; btn.innerText = 'Mód: Grafikon';
+                document.getElementById('mainChart').style.display = 'none';
+                document.getElementById('spectrum-container').style.display = 'flex';
+                buildSpectrum();
+            } else {
+                viewMode = 'chart'; btn.innerText = 'Mód: Spektrum';
+                document.getElementById('mainChart').style.display = 'block';
+                document.getElementById('spectrum-container').style.display = 'none';
             }
-            mainChart.update();
+            setTimeout(renderEvents, 50);
         }
 
         function openEventModal(id = null) {
@@ -240,7 +203,14 @@
         function renderEvents() {
             document.querySelectorAll('.event-tag').forEach(t => t.remove());
             events.forEach(ev => {
-                const x = mainChart.scales.x.getPixelForValue(mockData[ev.idx].t);
+                // Kiszámoljuk a pozíciót az index alapján, nem az időpont alapján keresünk
+                const totalWidth = 3000; // chart-wrapper szélessége
+                const padding = totalWidth * 0.5; // a kétoldali 50% padding
+                const graphWidth = totalWidth - (totalWidth * 1.0); // valós grafikon szélesség
+                
+                // Precíz pixel pozíció az index alapján
+                const x = (ev.idx / (mockData.length - 1)) * 3000;
+                
                 const tag = document.createElement('div');
                 tag.className = 'event-tag'; tag.innerText = ev.text; tag.style.left = x + "px";
                 tag.onclick = (e) => { e.stopPropagation(); openEventModal(ev.id); };
@@ -248,16 +218,18 @@
             });
         }
 
+        function toggleDataset(idx) {
+            const cards = document.querySelectorAll('.card');
+            if(mainChart.isDatasetVisible(idx)) { mainChart.hide(idx); cards[idx].classList.remove('active'); } 
+            else { mainChart.show(idx); cards[idx].classList.add('active'); }
+            mainChart.update();
+        }
+
         function deleteEvent() { events = events.filter(e => e.id !== activeEventId); renderEvents(); closeModal(); }
         function closeModal() { document.getElementById('event-modal').style.display = 'none'; }
 
-        setInterval(() => {
-            document.getElementById('live-noise').innerText = Math.floor(Math.random() * 10 + 5) + " %";
-            document.getElementById('live-temp').innerText = (21 + Math.random()).toFixed(1) + " °C";
-            document.getElementById('live-lux').innerText = (Math.random() * 5).toFixed(1) + " lx";
-        }, 3000);
-
         window.onload = () => { 
+            buildSpectrum();
             viewport.scrollLeft = viewport.scrollWidth; 
             setTimeout(() => viewport.dispatchEvent(new Event('scroll')), 200);
         };
