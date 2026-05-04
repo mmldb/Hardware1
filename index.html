@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Room Monitor Pro v2.2</title>
+    <title>Room Analytics v2.3</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -11,50 +11,48 @@
             --primary: #38bdf8; --accent: #f43f5e; --temp: #fbbf24; --lux: #a855f7; --grid: #334155;
         }
         
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .date-display { font-size: 0.9rem; color: var(--primary); font-weight: 600; }
+        .view-toggle { background: var(--card); border: 1px solid var(--grid); color: var(--text); padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; }
+
+        /* Központi tű adatai */
+        .playhead-display { text-align: center; margin-bottom: 10px; }
+        .playhead-time { font-size: 1.8rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; line-height: 1; }
+        .playhead-stats { display: flex; justify-content: center; gap: 10px; font-size: 0.8rem; font-weight: 600; margin-top: 5px; height: 1rem; }
 
         .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
-        .card { background: var(--card); padding: 12px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+        .card { background: var(--card); padding: 10px; border-radius: 12px; border: 2px solid transparent; }
         .card.active[data-idx="0"] { border-color: var(--primary); }
         .card.active[data-idx="2"] { border-color: var(--temp); }
         .card.active[data-idx="1"] { border-color: var(--accent); }
         .card.active[data-idx="3"] { border-color: var(--lux); }
-        .card h3 { margin: 0; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
-        .card p { margin: 5px 0 0; font-size: 1.1rem; font-weight: 700; color: var(--text); }
-
-        .y-axis-guide {
-            display: flex; justify-content: space-between; font-size: 0.65rem; color: #64748b;
-            padding: 5px 10px; background: rgba(30, 41, 59, 0.5); border-radius: 5px; margin-bottom: 10px;
-        }
-
-        .minimap-wrapper { position: relative; width: 100%; height: 60px; background: var(--card); border-radius: 8px; margin-bottom: 15px; cursor: pointer; overflow: hidden; border: 1px solid var(--grid); }
-        #view-indicator { position: absolute; top: 0; height: 100%; background: rgba(56, 189, 248, 0.1); border: 2px solid var(--primary); pointer-events: none; border-radius: 4px; box-sizing: border-box; }
-
-        .playhead-time { text-align: center; font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+        .card h3 { margin: 0; font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; }
+        .card p { margin: 2px 0 0; font-size: 1rem; font-weight: 700; }
 
         .timeline-container { position: relative; width: 100%; background: var(--card); border-radius: 15px; border: 1px solid var(--grid); overflow: hidden; }
-        .playhead { position: absolute; left: 50%; top: 45px; bottom: 35px; width: 2px; background: var(--primary); box-shadow: 0 0 15px var(--primary); z-index: 100; pointer-events: none; }
-        .add-event-btn { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 32px; height: 32px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 1.4rem; cursor: pointer; z-index: 101; }
+        .playhead { position: absolute; left: 50%; top: 40px; bottom: 30px; width: 2px; background: var(--primary); box-shadow: 0 0 15px var(--primary); z-index: 100; pointer-events: none; }
+        .add-event-btn { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 1.2rem; cursor: pointer; z-index: 101; }
 
-        .chart-viewport { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; position: relative; }
-        .chart-wrapper { width: 2000px; height: 320px; padding: 0 50%; box-sizing: border-box; position: relative; }
+        .chart-viewport { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .chart-wrapper { width: 2500px; height: 320px; padding: 0 50%; box-sizing: border-box; position: relative; }
 
-        .event-tag { position: absolute; top: 55px; transform: translateX(-50%); background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer; z-index: 50; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        /* Spektrum nézet (image.png stílus) */
+        .spectrum-view { display: none; flex-direction: column; gap: 5px; padding: 20px 0; }
+        .spectrum-row { height: 40px; width: 100%; display: flex; border-radius: 4px; overflow: hidden; background: #000; }
+        .spec-pixel { flex: 1; height: 100%; }
 
-        #event-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); border: 1px solid var(--grid); padding: 20px; border-radius: 20px; z-index: 1000; width: 85%; max-width: 320px; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
-        input { width: 100%; background: var(--bg); border: 1px solid var(--grid); color: white; padding: 12px; margin: 15px 0; border-radius: 10px; font-size: 1rem; }
-        .modal-btns { display: flex; gap: 10px; }
-        .btn { border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .event-tag { position: absolute; top: 55px; transform: translateX(-50%); background: var(--accent); color: white; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; cursor: pointer; z-index: 50; }
+
+        #event-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 20px; border-radius: 20px; z-index: 1000; width: 80%; max-width: 300px; box-shadow: 0 0 50px #000; }
+        input { width: 100%; background: var(--bg); border: 1px solid var(--grid); color: white; padding: 12px; margin: 15px 0; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="date-display" id="header-date">--</div>
-        <div style="font-size: 0.7rem; opacity: 0.4;">SWIPE TO NAVIGATE</div>
+        <div class="date-display" id="header-date">2026. Május 04.</div>
+        <button class="view-toggle" onclick="toggleViewMode()">Mód: Grafikon</button>
     </header>
 
     <div class="dashboard">
@@ -64,155 +62,169 @@
         <div class="card" data-idx="3" onclick="toggleDataset(3)"><h3>Fény</h3><p id="live-lux">-- lx</p></div>
     </div>
 
-    <div class="y-axis-guide">
-        <div id="guide-left" style="opacity: 0.3"><span style="color:var(--temp)">Hő (15-35°C)</span> | <span style="color:var(--lux)">Fény (0-100lx)</span></div>
-        <div id="guide-right"><span style="color:var(--primary)">Skála: 0 - 100</span></div>
+    <div class="playhead-display">
+        <div class="playhead-time" id="center-time">--:--</div>
+        <div class="playhead-stats" id="center-stats"></div>
     </div>
-
-    <div class="minimap-wrapper" id="minimap-area">
-        <canvas id="miniMapChart"></canvas>
-        <div id="view-indicator"></div>
-    </div>
-
-    <div class="playhead-time" id="center-time">--:--</div>
 
     <div class="timeline-container">
         <button class="add-event-btn" onclick="openEventModal()">+</button>
         <div class="playhead"></div>
+        
         <div class="chart-viewport" id="viewport">
             <div class="chart-wrapper" id="chart-holder">
+                <!-- Standard Grafikon -->
                 <canvas id="mainChart"></canvas>
+                
+                <!-- Spektrum Nézet (image.png stílus) -->
+                <div id="spectrum-container" class="spectrum-view">
+                    <div class="spectrum-row" id="row-noise"></div>
+                    <div class="spectrum-row" id="row-temp"></div>
+                    <div class="spectrum-row" id="row-lux"></div>
+                    <div class="spectrum-row" id="row-move"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="event-modal">
-        <h3 id="modal-title" style="margin:0">Esemény</h3>
-        <p id="modal-time-label" style="opacity: 0.5; margin: 5px 0;"></p>
+        <h3 id="modal-time-label" style="margin:0; font-size: 1rem;">--:--</h3>
         <input type="text" id="event-input" placeholder="Megjegyzés...">
-        <div class="modal-btns">
-            <button class="btn" style="background:var(--primary); color:white; flex:2" onclick="saveEvent()">Mentés</button>
-            <button id="del-btn" class="btn" style="background:var(--accent); color:white; flex:1; display:none" onclick="deleteEvent()">🗑️</button>
+        <div style="display:flex; gap:10px">
+            <button onclick="saveEvent()" style="background:var(--primary); border:none; color:white; padding:10px; border-radius:8px; flex:2">Mentés</button>
+            <button id="del-btn" onclick="deleteEvent()" style="background:var(--accent); border:none; color:white; padding:10px; border-radius:8px; display:none">🗑️</button>
         </div>
-        <button onclick="closeModal()" style="background:none; border:none; color:#64748b; width:100%; margin-top:15px;">Mégse</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:#64748b; width:100%; margin-top:10px">Mégse</button>
     </div>
 
     <script>
         const viewport = document.getElementById('viewport');
         const timeDisplay = document.getElementById('center-time');
-        const indicator = document.getElementById('view-indicator');
-        const minimapArea = document.getElementById('minimap-area');
+        const statsDisplay = document.getElementById('center-stats');
         let events = [];
-        let activeEventId = null;
-        window.currentIdx = 0; // Fix kezdeti érték
-
-        document.getElementById('header-date').innerText = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+        let viewMode = 'chart'; // 'chart' vagy 'spectrum'
 
         const generateData = () => {
             const data = []; const now = new Date();
-            // A szimulációhoz fix pontokat használunk, hogy elkerüljük az időeltolódást
-            for (let i = 150; i >= 0; i--) {
-                const time = new Date(now.getTime() - i * 10 * 60000);
+            for (let i = 200; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 8 * 60000);
                 data.push({
                     t: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    noise: Math.random() * 20 + 10,
-                    temp: 21 + Math.random() * 2,
-                    move: Math.random() > 0.98 ? 40 : 0,
-                    lux: Math.random() * 5
+                    noise: Math.random() * 40 + 10,
+                    temp: 20 + Math.random() * 5,
+                    lux: Math.random() * 50,
+                    move: Math.random() > 0.97 ? 50 : 0
                 });
             }
             return data;
         };
         const mockData = generateData();
 
-        // CHART KONFIGURÁCIÓ
+        // Grafikon setup
         const mainChart = new Chart(document.getElementById('mainChart'), {
             type: 'line',
             data: {
                 labels: mockData.map(d => d.t),
                 datasets: [
-                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', tension: 0.4, pointRadius: 0, yAxisID: 'y' },
-                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 4, yAxisID: 'y' },
-                    { label: 'Hő', data: mockData.map(d => (d.temp - 15) * 5), borderColor: '#fbbf24', hidden: true, tension: 0.4, pointRadius: 0, yAxisID: 'y1' },
-                    { label: 'Fény', data: mockData.map(d => d.lux * 10), borderColor: '#a855f7', hidden: true, tension: 0.4, pointRadius: 0, yAxisID: 'y1' }
+                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', tension: 0.4, pointRadius: 0 },
+                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 4 },
+                    { label: 'Hő', data: mockData.map(d => (d.temp - 15) * 5), borderColor: '#fbbf24', hidden: true, tension: 0.4, pointRadius: 0 },
+                    { label: 'Fény', data: mockData.map(d => d.lux), borderColor: '#a855f7', hidden: true, tension: 0.4, pointRadius: 0 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: { 
-                    x: { display: true, grid: { color: '#334155' }, ticks: { color: '#64748b' } },
-                    y: { 
-                        position: 'right', 
-                        display: true, 
-                        min: 0, 
-                        max: 100, 
-                        grid: { color: '#334155' }, 
-                        ticks: { color: '#64748b', stepSize: 20 } 
-                    },
-                    y1: { position: 'left', display: false, min: 0, max: 100, grid: { display: false } }
+                    x: { grid: { color: '#334155' }, ticks: { color: '#64748b' } },
+                    y: { position: 'right', min: 0, max: 100, ticks: { color: '#64748b' }, grid: { color: '#334155' } }
                 }
             }
         });
 
-        const miniMap = new Chart(document.getElementById('miniMapChart'), {
-            type: 'line',
-            data: {
-                labels: mockData.map(d => d.t),
-                datasets: [
-                    { data: mockData.map(d => d.noise), borderColor: '#38bdf8', borderWidth: 1, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', pointRadius: 0, tension: 0.4 },
-                    { data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 1 },
-                    { data: mockData.map(d => (d.temp - 15) * 5), borderColor: '#fbbf24', hidden: true, borderWidth: 1, pointRadius: 0 },
-                    { data: mockData.map(d => d.lux * 10), borderColor: '#a855f7', hidden: true, borderWidth: 1, pointRadius: 0 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 0, max: 100 } } }
-        });
+        // Spektrum generálás (image.png)
+        function buildSpectrum() {
+            const rows = {
+                noise: { el: document.getElementById('row-noise'), color: '56, 189, 248' },
+                temp: { el: document.getElementById('row-temp'), color: '251, 191, 36' },
+                lux: { el: document.getElementById('row-lux'), color: '168, 85, 247' },
+                move: { el: document.getElementById('row-move'), color: '244, 63, 94' }
+            };
+            
+            Object.values(rows).forEach(r => r.el.innerHTML = '');
+            
+            mockData.forEach(d => {
+                const createPixel = (val, color, max) => {
+                    const p = document.createElement('div');
+                    p.className = 'spec-pixel';
+                    p.style.backgroundColor = `rgba(${color}, ${val/max})`;
+                    return p;
+                };
+                rows.noise.el.appendChild(createPixel(d.noise, rows.noise.color, 100));
+                rows.temp.el.appendChild(createPixel(d.temp - 15, rows.temp.color, 15));
+                rows.lux.el.appendChild(createPixel(d.lux, rows.lux.color, 100));
+                rows.move.el.appendChild(createPixel(d.move, rows.move.color, 100));
+            });
+        }
 
-        // GÖRGETÉS ÉS SZINKRONIZÁCIÓ
+        // Nézet váltás
+        function toggleViewMode() {
+            const btn = document.querySelector('.view-toggle');
+            if(viewMode === 'chart') {
+                viewMode = 'spectrum';
+                btn.innerText = 'Mód: Spektrum';
+                document.getElementById('mainChart').style.display = 'none';
+                document.getElementById('spectrum-container').style.display = 'flex';
+                buildSpectrum();
+            } else {
+                viewMode = 'chart';
+                btn.innerText = 'Mód: Grafikon';
+                document.getElementById('mainChart').style.display = 'block';
+                document.getElementById('spectrum-container').style.display = 'none';
+            }
+        }
+
+        // Navigáció & Stat kiírás a tűnél
         viewport.addEventListener('scroll', () => {
             const scrollPercent = viewport.scrollLeft / (viewport.scrollWidth - viewport.clientWidth);
             const index = Math.round(scrollPercent * (mockData.length - 1));
+            const d = mockData[index];
             
-            if(mockData[index]) {
-                timeDisplay.innerText = mockData[index].t;
-                window.currentIdx = index; // Ez az alapja a mentésnek!
+            if(d) {
+                timeDisplay.innerText = d.t;
+                window.currentIdx = index; // Fix index mentéshez!
+                
+                statsDisplay.innerHTML = `
+                    <span style="color:var(--primary)">${Math.round(d.noise)}%</span>
+                    <span style="color:var(--temp)">${d.temp.toFixed(1)}°C</span>
+                    <span style="color:var(--lux)">${Math.round(d.lux)}lx</span>
+                `;
             }
-
-            const indWidth = (viewport.clientWidth / viewport.scrollWidth) * 100;
-            indicator.style.width = indWidth + "%";
-            indicator.style.left = (scrollPercent * (100 - indWidth)) + "%";
         });
 
         function toggleDataset(idx) {
-            const visible = mainChart.isDatasetVisible(idx);
             const cards = document.querySelectorAll('.card');
-            if(visible) { 
-                mainChart.hide(idx); miniMap.hide(idx); cards[idx].classList.remove('active');
+            if(mainChart.isDatasetVisible(idx)) { 
+                mainChart.hide(idx); cards[idx].classList.remove('active');
             } else { 
-                mainChart.show(idx); miniMap.show(idx); cards[idx].classList.add('active');
+                mainChart.show(idx); cards[idx].classList.add('active');
             }
-            const showLeftAxis = mainChart.isDatasetVisible(2) || mainChart.isDatasetVisible(3);
-            document.getElementById('guide-left').style.opacity = showLeftAxis ? "1" : "0.3";
-            mainChart.update(); miniMap.update();
+            mainChart.update();
         }
 
         function openEventModal(id = null) {
-            activeEventId = id;
             const modal = document.getElementById('event-modal');
-            const input = document.getElementById('event-input');
             const delBtn = document.getElementById('del-btn');
-            
+            activeEventId = id;
             if(id !== null) {
                 const ev = events.find(e => e.id === id);
-                input.value = ev.text;
-                delBtn.style.display = 'block';
+                document.getElementById('event-input').value = ev.text;
                 document.getElementById('modal-time-label').innerText = mockData[ev.idx].t;
+                delBtn.style.display = 'block';
             } else {
-                input.value = '';
-                delBtn.style.display = 'none';
-                // Mindig a tű alatt látható pontos időt használjuk
+                document.getElementById('event-input').value = '';
                 document.getElementById('modal-time-label').innerText = mockData[window.currentIdx].t;
+                delBtn.style.display = 'none';
             }
             modal.style.display = 'block';
         }
@@ -220,25 +232,14 @@
         function saveEvent() {
             const txt = document.getElementById('event-input').value;
             if(!txt) return;
-            
-            if(activeEventId) {
-                events.find(e => e.id === activeEventId).text = txt;
-            } else {
-                // Itt rögzítjük a tű alatti indexet, ami garantálja, hogy oda kerül, amit látsz
-                events.push({ id: Date.now(), idx: window.currentIdx, text: txt });
-            }
-            renderEvents(); closeModal();
-        }
-
-        function deleteEvent() {
-            events = events.filter(e => e.id !== activeEventId);
+            if(activeEventId) { events.find(e => e.id === activeEventId).text = txt; } 
+            else { events.push({ id: Date.now(), idx: window.currentIdx, text: txt }); }
             renderEvents(); closeModal();
         }
 
         function renderEvents() {
             document.querySelectorAll('.event-tag').forEach(t => t.remove());
             events.forEach(ev => {
-                // Megkeressük az indexhez tartozó pixel pozíciót a grafikonon
                 const x = mainChart.scales.x.getPixelForValue(mockData[ev.idx].t);
                 const tag = document.createElement('div');
                 tag.className = 'event-tag'; tag.innerText = ev.text; tag.style.left = x + "px";
@@ -247,12 +248,13 @@
             });
         }
 
+        function deleteEvent() { events = events.filter(e => e.id !== activeEventId); renderEvents(); closeModal(); }
         function closeModal() { document.getElementById('event-modal').style.display = 'none'; }
 
         setInterval(() => {
             document.getElementById('live-noise').innerText = Math.floor(Math.random() * 10 + 5) + " %";
             document.getElementById('live-temp').innerText = (21 + Math.random()).toFixed(1) + " °C";
-            document.getElementById('live-lux').innerText = (Math.random() * 2).toFixed(1) + " lx";
+            document.getElementById('live-lux').innerText = (Math.random() * 5).toFixed(1) + " lx";
         }, 3000);
 
         window.onload = () => { 
