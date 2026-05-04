@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Room Analytics</title>
+    <title>Pro Analytics v1.7</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -13,26 +13,32 @@
         
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
 
-        /* Kártyák interaktív stílusa */
         .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         .card { 
             background: var(--card); padding: 12px; border-radius: 10px; border: 2px solid transparent; 
             cursor: pointer; transition: all 0.2s ease;
         }
-        .card.active[data-type="noise"] { border-color: var(--primary); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
-        .card.active[data-type="temp"] { border-color: var(--temp); box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
-        .card.active[data-type="move"] { border-color: var(--accent); box-shadow: 0 0 10px rgba(244, 63, 94, 0.3); }
-        .card.active[data-type="lux"] { border-color: var(--lux); box-shadow: 0 0 10px rgba(168, 85, 247, 0.3); }
+        /* Aktív kártya stílusok */
+        .card.active[data-type="noise"] { border-color: var(--primary); }
+        .card.active[data-type="temp"] { border-color: var(--temp); }
+        .card.active[data-type="move"] { border-color: var(--accent); }
+        .card.active[data-type="lux"] { border-color: var(--lux); }
         
         .card h3 { margin: 0; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; display: flex; align-items: center; }
         .card p { margin: 5px 0 0; font-size: 1.1rem; font-weight: 600; }
         .dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 
-        /* Mini-Map */
-        .minimap-wrapper { position: relative; width: 100%; height: 70px; background: var(--card); border-radius: 8px; margin-bottom: 15px; cursor: crosshair; }
+        /* Skála indikátorok a grafikon mellett */
+        .y-axis-guide {
+            display: flex; justify-content: space-between; font-size: 0.65rem; color: #64748b;
+            padding: 5px 10px; background: rgba(30, 41, 59, 0.5); border-radius: 5px; margin-bottom: 5px;
+        }
+        .guide-item { display: flex; align-items: center; gap: 4px; }
+
+        .minimap-wrapper { position: relative; width: 100%; height: 75px; background: var(--card); border-radius: 8px; margin-bottom: 15px; cursor: pointer; }
         #view-indicator { 
             position: absolute; top: 0; left: 0; height: 100%; width: 20%; 
-            background: rgba(56, 189, 248, 0.15); border: 2px solid var(--primary); 
+            background: rgba(56, 189, 248, 0.1); border: 2px solid var(--primary); 
             pointer-events: none; border-radius: 4px; box-sizing: border-box;
         }
 
@@ -40,27 +46,38 @@
             width: 100%; overflow-x: auto; background: var(--card); border-radius: 12px;
             border: 1px solid var(--grid); -webkit-overflow-scrolling: touch;
         }
-        .chart-wrapper { width: 1500px; height: 350px; padding: 10px; }
+        .chart-wrapper { width: 1500px; height: 320px; padding: 10px; }
     </style>
 </head>
 <body>
 
     <div class="dashboard">
-        <div class="card active" data-type="noise" onclick="toggleDataset(0)">
+        <div class="card active" onclick="toggleDataset(0)">
             <h3><span class="dot" style="background: var(--primary)"></span>Zaj</h3>
             <p id="live-noise">-- %</p>
         </div>
-        <div class="card" data-type="temp" onclick="toggleDataset(2)">
+        <div class="card" onclick="toggleDataset(2)">
             <h3><span class="dot" style="background: var(--temp)"></span>Hőmérséklet</h3>
             <p id="live-temp">-- °C</p>
         </div>
-        <div class="card active" data-type="move" onclick="toggleDataset(1)">
+        <div class="card active" onclick="toggleDataset(1)">
             <h3><span class="dot" style="background: var(--accent)"></span>Mozgás</h3>
             <p id="live-move">Nincs</p>
         </div>
-        <div class="card" data-type="lux" onclick="toggleDataset(3)">
+        <div class="card" onclick="toggleDataset(3)">
             <h3><span class="dot" style="background: var(--lux)"></span>Fény</h3>
             <p id="live-lux">-- lux</p>
+        </div>
+    </div>
+
+    <!-- Skála Útmutató -->
+    <div class="y-axis-guide">
+        <div class="guide-item" id="guide-left">
+            <span style="color: var(--temp)">Hő: 15-35°C</span>
+            <span style="color: var(--lux)">| Fény: 0-100lx</span>
+        </div>
+        <div class="guide-item" id="guide-right">
+            <span style="color: var(--primary)">Zaj: 0-100%</span>
         </div>
     </div>
 
@@ -76,7 +93,6 @@
     </div>
 
     <script>
-        // 1. ADATGENERÁLÁS
         const generateData = () => {
             const data = []; const now = new Date();
             for (let i = 96; i >= 0; i--) {
@@ -99,14 +115,14 @@
         const indicator = document.getElementById('view-indicator');
         const minimapArea = document.getElementById('minimap-area');
 
-        // 2. GRAFIKONOK INICIALIZÁLÁSA
+        // FŐ GRAFIKON
         const mainChart = new Chart(document.getElementById('mainChart'), {
             type: 'line',
             data: {
                 labels: mockData.map(d => d.t),
                 datasets: [
-                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.4, pointRadius: 0, hidden: false },
-                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 4, hidden: false },
+                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.4, pointRadius: 0 },
+                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 4 },
                     { label: 'Hő', data: mockData.map(d => d.temp), borderColor: '#fbbf24', tension: 0.4, pointRadius: 0, hidden: true, yAxisID: 'y1' },
                     { label: 'Fény', data: mockData.map(d => d.lux), borderColor: '#a855f7', tension: 0.4, pointRadius: 0, hidden: true, yAxisID: 'y1' }
                 ]
@@ -115,32 +131,60 @@
                 responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
                 scales: {
                     x: { ticks: { color: '#64748b', maxTicksLimit: 12 }, grid: { color: '#334155' } },
-                    y: { position: 'right', grid: { color: '#334155' }, ticks: { color: '#64748b' }, beginAtZero: true },
-                    y1: { position: 'left', display: false, grid: { display: false } }
+                    y: { position: 'right', grid: { color: '#334155' }, ticks: { color: '#64748b' }, beginAtZero: true, max: 100 },
+                    y1: { position: 'left', display: false, min: 0, max: 100 }
                 }
             }
         });
 
+        // MINI-MAP (Ugyanazokkal a datasetekkel, mint a nagy)
         const miniMap = new Chart(document.getElementById('miniMapChart'), {
             type: 'line',
             data: {
                 labels: mockData.map(d => d.t),
-                datasets: [{ data: mockData.map(d => d.noise), borderColor: 'rgba(56, 189, 248, 0.4)', borderWidth: 1, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', pointRadius: 0, tension: 0.4 }]
+                datasets: [
+                    { data: mockData.map(d => d.noise), borderColor: '#38bdf8', borderWidth: 1, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', pointRadius: 0, tension: 0.4 },
+                    { data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 1 },
+                    { data: mockData.map(d => d.temp), borderColor: '#fbbf24', borderWidth: 1, pointRadius: 0, tension: 0.4, hidden: true },
+                    { data: mockData.map(d => d.lux), borderColor: '#a855f7', borderWidth: 1, pointRadius: 0, tension: 0.4, hidden: true }
+                ]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+            options: { 
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
+                scales: { x: { display: false }, y: { display: false, min: 0, max: 100 } } 
+            }
         });
 
-        // 3. INTERAKTÍV NAVIGÁCIÓ (Kattintás a térképen)
+        // TOGGLE LOGIKA
+        function toggleDataset(index) {
+            const card = document.querySelectorAll('.card')[index];
+            const isVisible = mainChart.isDatasetVisible(index);
+
+            if (isVisible) {
+                mainChart.hide(index);
+                miniMap.hide(index);
+                card.classList.remove('active');
+            } else {
+                mainChart.show(index);
+                miniMap.show(index);
+                card.classList.add('active');
+            }
+
+            // Bal oldali Y skála indikálása
+            mainChart.options.scales.y1.display = (mainChart.isDatasetVisible(2) || mainChart.isDatasetVisible(3));
+            document.getElementById('guide-left').style.opacity = mainChart.options.scales.y1.display ? "1" : "0.3";
+            
+            mainChart.update();
+            miniMap.update();
+        }
+
+        // NAVIGÁCIÓ
         minimapArea.addEventListener('click', (e) => {
             const rect = minimapArea.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickPercent = clickX / rect.width;
-            
-            const scrollTarget = (viewport.scrollWidth * clickPercent) - (viewport.clientWidth / 2);
-            viewport.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+            const clickPercent = (e.clientX - rect.left) / rect.width;
+            viewport.scrollTo({ left: (viewport.scrollWidth * clickPercent) - (viewport.clientWidth / 2), behavior: 'smooth' });
         });
 
-        // Navigációs keret frissítése
         viewport.addEventListener('scroll', () => {
             const scrollPercent = viewport.scrollLeft / (viewport.scrollWidth - viewport.clientWidth);
             const indicatorWidth = (viewport.clientWidth / viewport.scrollWidth) * 100;
@@ -148,34 +192,11 @@
             indicator.style.left = (scrollPercent * (100 - indicatorWidth)) + "%";
         });
 
-        // 4. KÁRTYA TOGGLE (Layer kezelés)
-        function toggleDataset(index) {
-            const isHidden = mainChart.isDatasetVisible(index);
-            const card = document.querySelectorAll('.card')[index];
-            
-            if (isHidden) {
-                mainChart.hide(index);
-                card.classList.remove('active');
-            } else {
-                mainChart.show(index);
-                card.classList.add('active');
-            }
-            
-            // Ha hő vagy fény, mutassuk a bal skálát is
-            mainChart.options.scales.y1.display = (mainChart.isDatasetVisible(2) || mainChart.isDatasetVisible(3));
-            mainChart.update();
-        }
-
-        // 5. LIVE SIM (Értékek frissítése)
         setInterval(() => {
-            const noise = Math.floor(Math.random() * 20 + 5);
-            const temp = (21 + Math.random()).toFixed(1);
-            const lux = (Math.random() * 5).toFixed(1);
-            
-            document.getElementById('live-noise').innerText = noise + " %";
-            document.getElementById('live-temp').innerText = temp + " °C";
-            document.getElementById('live-lux').innerText = lux + " lux";
-        }, 2500);
+            document.getElementById('live-noise').innerText = Math.floor(Math.random() * 15 + 5) + " %";
+            document.getElementById('live-temp').innerText = (21 + Math.random()).toFixed(1) + " °C";
+            document.getElementById('live-lux').innerText = (Math.random() * 2).toFixed(1) + " lux";
+        }, 3000);
 
         window.onload = () => { viewport.dispatchEvent(new Event('scroll')); };
     </script>
