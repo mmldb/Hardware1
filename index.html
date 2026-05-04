@@ -3,226 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Analytics v1.9</title>
+    <title>Room Monitor Pro v2.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
-            --primary: #38bdf8; --accent: #f43f5e; --grid: #334155;
+            --primary: #38bdf8; --accent: #f43f5e; --temp: #fbbf24; --lux: #a855f7; --grid: #334155;
         }
         
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
 
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .date-display { font-size: 0.8rem; color: var(--primary); }
+        .date-display { font-size: 0.9rem; color: var(--primary); font-weight: 600; }
 
-        /* Központi IDŐ-KIJELZŐ a tű alatt */
-        .playhead-time { text-align: center; font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+        /* Kártyák */
+        .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .card { background: var(--card); padding: 12px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+        .card.active[data-idx="0"] { border-color: var(--primary); }
+        .card.active[data-idx="2"] { border-color: var(--temp); }
+        .card.active[data-idx="1"] { border-color: var(--accent); }
+        .card.active[data-idx="3"] { border-color: var(--lux); }
+        .card h3 { margin: 0; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+        .card p { margin: 5px 0 0; font-size: 1.1rem; font-weight: 700; color: var(--text); }
 
-        /* CDJ-Style Konténer */
+        /* Mini-Map Navigátor */
+        .minimap-wrapper { position: relative; width: 100%; height: 60px; background: var(--card); border-radius: 8px; margin-bottom: 15px; cursor: pointer; overflow: hidden; border: 1px solid var(--grid); }
+        #view-indicator { position: absolute; top: 0; height: 100%; background: rgba(56, 189, 248, 0.1); border: 2px solid var(--primary); pointer-events: none; border-radius: 4px; box-sizing: border-box; transition: left 0.1s; }
+
+        /* Időkijelző a tűhöz */
+        .playhead-time { text-align: center; font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+
+        /* CDJ Timeline konténer */
         .timeline-container { position: relative; width: 100%; background: var(--card); border-radius: 15px; border: 1px solid var(--grid); overflow: hidden; }
-        
-        /* A FIX FÜGGŐLEGES TŰ (Indikátor) */
-        .playhead {
-            position: absolute; left: 50%; top: 40px; bottom: 30px;
-            width: 2px; background: var(--primary); box-shadow: 0 0 10px var(--primary);
-            z-index: 100; pointer-events: none; border-left: 1px dashed rgba(56, 189, 248, 0.5);
-        }
+        .playhead { position: absolute; left: 50%; top: 45px; bottom: 35px; width: 2px; background: var(--primary); box-shadow: 0 0 15px var(--primary); z-index: 100; pointer-events: none; }
+        .add-event-btn { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 32px; height: 32px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 1.4rem; cursor: pointer; z-index: 101; }
 
-        .chart-viewport { width: 100%; overflow-x: auto; scroll-behavior: auto; -webkit-overflow-scrolling: touch; }
-        /* Padding a széleken, hogy a tűt az elejére/végére is lehessen tekerni */
-        .chart-wrapper { width: 2500px; height: 300px; padding: 0 50%; box-sizing: border-box; position: relative; }
+        .chart-viewport { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .chart-wrapper { width: 2000px; height: 320px; padding: 0 50%; box-sizing: border-box; position: relative; }
 
-        /* Akció gomb a tű felett */
-        .add-event-btn {
-            position: absolute; left: 50%; top: 5px; transform: translateX(-50%);
-            width: 35px; height: 35px; border-radius: 50%; background: var(--primary);
-            border: none; color: white; font-size: 1.5rem; font-weight: bold; cursor: pointer; z-index: 101;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-        }
-
-        .event-tag {
-            position: absolute; top: 50px; transform: translateX(-50%);
-            background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px;
-            font-size: 0.7rem; white-space: nowrap; cursor: pointer; z-index: 50;
-        }
+        .event-tag { position: absolute; top: 55px; transform: translateX(-50%); background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer; z-index: 50; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
 
         /* Modal */
-        #event-modal { 
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: var(--card); border: 1px solid var(--grid); padding: 20px; border-radius: 15px;
-            z-index: 1000; width: 85%; max-width: 320px;
-        }
-        input { width: 100%; background: var(--bg); border: 1px solid var(--grid); color: white; padding: 12px; margin: 15px 0; border-radius: 8px; box-sizing: border-box; }
+        #event-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); border: 1px solid var(--grid); padding: 20px; border-radius: 20px; z-index: 1000; width: 85%; max-width: 320px; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        input { width: 100%; background: var(--bg); border: 1px solid var(--grid); color: white; padding: 12px; margin: 15px 0; border-radius: 10px; font-size: 1rem; }
         .modal-btns { display: flex; gap: 10px; }
-        .btn-save { background: var(--primary); flex: 2; border: none; color: white; padding: 10px; border-radius: 8px; font-weight: bold; }
-        .btn-del { background: var(--accent); flex: 1; border: none; color: white; padding: 10px; border-radius: 8px; font-weight: bold; }
+        .btn { border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="date-display">2026. Május 04.</div>
-        <div style="font-size: 0.7rem; opacity: 0.5;">SCROLL TO NAVIGATE</div>
+        <div class="date-display" id="header-date">2026. Május 04.</div>
+        <div style="font-size: 0.7rem; opacity: 0.4;">SWIPE TO NAVIGATE</div>
     </header>
+
+    <div class="dashboard">
+        <div class="card active" data-idx="0" onclick="toggleDataset(0)"><h3>Zaj</h3><p id="live-noise">-- %</p></div>
+        <div class="card" data-idx="2" onclick="toggleDataset(2)"><h3>Hő</h3><p id="live-temp">-- °C</p></div>
+        <div class="card active" data-idx="1" onclick="toggleDataset(1)"><h3>Mozgás</h3><p id="live-move">Nincs</p></div>
+        <div class="card" data-idx="3" onclick="toggleDataset(3)"><h3>Fény</h3><p id="live-lux">-- lx</p></div>
+    </div>
+
+    <div class="minimap-wrapper" id="minimap-area">
+        <canvas id="miniMapChart"></canvas>
+        <div id="view-indicator"></div>
+    </div>
 
     <div class="playhead-time" id="center-time">--:--</div>
 
     <div class="timeline-container">
         <button class="add-event-btn" onclick="openEventModal()">+</button>
         <div class="playhead"></div>
-        
         <div class="chart-viewport" id="viewport">
             <div class="chart-wrapper" id="chart-holder">
                 <canvas id="mainChart"></canvas>
-                <!-- Dinamikus event tagek helye -->
             </div>
         </div>
     </div>
 
     <div id="event-modal">
-        <h3 id="modal-title">Új bejegyzés</h3>
-        <p id="modal-time-label" style="opacity: 0.6; font-size: 0.9rem;"></p>
-        <input type="text" id="event-input" placeholder="Pl: Lázcsillapító, Alvás...">
+        <h3 id="modal-title" style="margin:0">Esemény</h3>
+        <p id="modal-time-label" style="opacity: 0.5; margin: 5px 0;"></p>
+        <input type="text" id="event-input" placeholder="Megjegyzés...">
         <div class="modal-btns">
-            <button class="btn-save" onclick="saveEvent()">Mentés</button>
-            <button id="del-btn" class="btn-del" onclick="deleteEvent()" style="display:none">Törlés</button>
+            <button class="btn" style="background:var(--primary); color:white; flex:2" onclick="saveEvent()">Mentés</button>
+            <button id="del-btn" class="btn" style="background:var(--accent); color:white; flex:1; display:none" onclick="deleteEvent()">🗑️</button>
         </div>
-        <button onclick="closeModal()" style="background:none; border:none; color:#64748b; width:100%; margin-top:10px;">Bezár</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:#64748b; width:100%; margin-top:15px;">Mégse</button>
     </div>
 
     <script>
-        const chartWidth = 2500;
         const viewport = document.getElementById('viewport');
         const timeDisplay = document.getElementById('center-time');
-        let events = []; // { id: 1, timeIdx: 40, text: "Lázcsillapító" }
+        const indicator = document.getElementById('view-indicator');
+        const minimapArea = document.getElementById('minimap-area');
+        let events = [];
         let activeEventId = null;
 
-        // 1. ADATGENERÁLÁS (Tisztább görbe DJ deckhez)
+        // Dátum
+        document.getElementById('header-date').innerText = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+
         const generateData = () => {
             const data = []; const now = new Date();
-            for (let i = 120; i >= 0; i--) {
-                const time = new Date(now.getTime() - i * 12 * 60000); // 12 perces közök
+            for (let i = 150; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 10 * 60000);
                 data.push({
                     t: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    noise: Math.random() * 25 + 10
+                    noise: Math.random() * 20 + 10,
+                    temp: 21 + Math.random(),
+                    move: Math.random() > 0.98 ? 40 : 0,
+                    lux: Math.random() * 2
                 });
             }
             return data;
         };
         const mockData = generateData();
 
-        // 2. CHART KONFIG
-        const ctx = document.getElementById('mainChart').getContext('2d');
-        const mainChart = new Chart(ctx, {
+        // CHART CONFIG
+        const chartConfig = (id, isMini) => ({
             type: 'line',
             data: {
                 labels: mockData.map(d => d.t),
-                datasets: [{
-                    data: mockData.map(d => d.noise),
-                    borderColor: '#38bdf8',
-                    borderWidth: 2,
-                    fill: true,
-                    backgroundColor: 'rgba(56, 189, 248, 0.05)',
-                    tension: 0.4,
-                    pointRadius: 0
-                }]
+                datasets: [
+                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', tension: 0.4, pointRadius: 0 },
+                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: isMini ? 1 : 4 },
+                    { label: 'Hő', data: mockData.map(d => d.temp), borderColor: '#fbbf24', hidden: true, tension: 0.4, pointRadius: 0 },
+                    { label: 'Fény', data: mockData.map(d => d.lux), borderColor: '#a855f7', hidden: true, tension: 0.4, pointRadius: 0 }
+                ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { color: '#334155' }, ticks: { color: '#64748b' } },
+                scales: { 
+                    x: { display: !isMini, grid: { color: '#334155' }, ticks: { color: '#64748b' } },
                     y: { display: false, beginAtZero: true, max: 100 }
                 }
             }
         });
 
-        // 3. CDJ NAVIGÁCIÓS LOGIKA
+        const mainChart = new Chart(document.getElementById('mainChart'), chartConfig('main', false));
+        const miniMap = new Chart(document.getElementById('miniMapChart'), chartConfig('mini', true));
+
+        // SYNC SCROLL & MINIMAP
         viewport.addEventListener('scroll', () => {
-            // Kiszámoljuk melyik adatponton áll a tű (a közepén)
-            const scrollLeft = viewport.scrollLeft;
-            const scrollMax = viewport.scrollWidth - viewport.clientWidth;
-            const percent = scrollLeft / scrollMax;
+            const scrollPercent = viewport.scrollLeft / (viewport.scrollWidth - viewport.clientWidth);
+            const index = Math.round(scrollPercent * (mockData.length - 1));
             
-            const index = Math.round(percent * (mockData.length - 1));
             if(mockData[index]) {
                 timeDisplay.innerText = mockData[index].t;
                 window.currentIdx = index;
             }
+
+            const indWidth = (viewport.clientWidth / viewport.scrollWidth) * 100;
+            indicator.style.width = indWidth + "%";
+            indicator.style.left = (scrollPercent * (100 - indWidth)) + "%";
         });
 
-        // 4. EVENT KEZELÉS
-        function openEventModal(eventId = null) {
-            const modal = document.getElementById('event-modal');
-            const delBtn = document.getElementById('del-btn');
-            activeEventId = eventId;
+        // MINIMAP CLICK TO JUMP
+        minimapArea.addEventListener('click', (e) => {
+            const rect = minimapArea.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            viewport.scrollTo({ left: (viewport.scrollWidth * pct) - (viewport.clientWidth / 2), behavior: 'smooth' });
+        });
 
-            if(eventId !== null) {
-                const ev = events.find(e => e.id === eventId);
-                document.getElementById('event-input').value = ev.text;
-                document.getElementById('modal-time-label').innerText = mockData[ev.timeIdx].t;
-                delBtn.style.display = 'block';
-                document.getElementById('modal-title').innerText = "Módosítás";
-            } else {
-                document.getElementById('event-input').value = '';
-                document.getElementById('modal-time-label').innerText = mockData[window.currentIdx].t;
-                delBtn.style.display = 'none';
-                document.getElementById('modal-title').innerText = "Új bejegyzés";
+        // TOGGLE DATASETS
+        function toggleDataset(idx) {
+            const visible = mainChart.isDatasetVisible(idx);
+            const cards = document.querySelectorAll('.card');
+            if(visible) { 
+                mainChart.hide(idx); miniMap.hide(idx); cards[idx].classList.remove('active');
+            } else { 
+                mainChart.show(idx); miniMap.show(idx); cards[idx].classList.add('active');
             }
+            mainChart.update(); miniMap.update();
+        }
+
+        // EVENT LOGIC (SAVE/DEL)
+        function openEventModal(id = null) {
+            activeEventId = id;
+            const modal = document.getElementById('event-modal');
+            const input = document.getElementById('event-input');
+            const delBtn = document.getElementById('del-btn');
+            
+            if(id !== null) {
+                const ev = events.find(e => e.id === id);
+                input.value = ev.text;
+                delBtn.style.display = 'block';
+            } else {
+                input.value = '';
+                delBtn.style.display = 'none';
+            }
+            document.getElementById('modal-time-label').innerText = mockData[window.currentIdx].t;
             modal.style.display = 'block';
         }
 
         function saveEvent() {
-            const text = document.getElementById('event-input').value;
-            if(!text) return;
-
-            if(activeEventId !== null) {
-                const ev = events.find(e => e.id === activeEventId);
-                ev.text = text;
+            const txt = document.getElementById('event-input').value;
+            if(!txt) return;
+            if(activeEventId) {
+                events.find(e => e.id === activeEventId).text = txt;
             } else {
-                const newEvent = {
-                    id: Date.now(),
-                    timeIdx: window.currentIdx,
-                    text: text
-                };
-                events.push(newEvent);
+                events.push({ id: Date.now(), idx: window.currentIdx, text: txt });
             }
-            renderEvents();
-            closeModal();
+            renderEvents(); closeModal();
         }
 
         function deleteEvent() {
             events = events.filter(e => e.id !== activeEventId);
-            renderEvents();
-            closeModal();
+            renderEvents(); closeModal();
         }
 
         function renderEvents() {
-            // Töröljük a régieket a DOM-ból
-            document.querySelectorAll('.event-tag').forEach(e => e.remove());
-            
+            document.querySelectorAll('.event-tag').forEach(t => t.remove());
             events.forEach(ev => {
-                const xPos = mainChart.scales.x.getPixelForValue(mockData[ev.timeIdx].t);
+                const x = mainChart.scales.x.getPixelForValue(mockData[ev.idx].t);
                 const tag = document.createElement('div');
-                tag.className = 'event-tag';
-                tag.innerText = ev.text;
-                tag.style.left = xPos + "px";
-                tag.onclick = (e) => {
-                    e.stopPropagation();
-                    openEventModal(ev.id);
-                };
+                tag.className = 'event-tag'; tag.innerText = ev.text; tag.style.left = x + "px";
+                tag.onclick = (e) => { e.stopPropagation(); openEventModal(ev.id); };
                 document.getElementById('chart-holder').appendChild(tag);
             });
         }
 
         function closeModal() { document.getElementById('event-modal').style.display = 'none'; }
-        
-        // Kezdő pozíció a végére (legfrissebb adat)
-        window.onload = () => {
-            viewport.scrollLeft = viewport.scrollWidth;
-            renderEvents();
-        };
+
+        // LIVE DATA SIM
+        setInterval(() => {
+            document.getElementById('live-noise').innerText = Math.floor(Math.random() * 10 + 5) + " %";
+            document.getElementById('live-temp').innerText = (21 + Math.random()).toFixed(1) + " °C";
+            document.getElementById('live-lux').innerText = (Math.random() * 2).toFixed(1) + " lx";
+        }, 3000);
+
+        window.onload = () => { viewport.scrollLeft = viewport.scrollWidth; };
     </script>
 </body>
 </html>
