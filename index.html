@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Környezeti Napló - Gyerekszoba</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #f4f7f6; --card: #ffffff; --primary: #4a90e2; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { margin: 0; font-size: 0.9rem; color: #777; }
+        .card p { margin: 10px 0 0; font-size: 1.4rem; font-weight: bold; color: var(--primary); }
+        .chart-container { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; }
+        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: #e1f5fe; color: #01579b; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>🌙 Gyerekszoba Monitoring</h1>
+
+    <div class="dashboard">
+        <div class="card"><h3>Zajszint</h3><p id="live-noise">12%</p></div>
+        <div class="card"><h3>Hőmérséklet</h3><p id="live-temp">21.8°C</p></div>
+        <div class="card"><h3>Páratartalom</h3><p id="live-hum">48%</p></div>
+        <div class="card"><h3>Fényerő</h3><p id="live-lux">2 lux</p></div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="mainChart"></canvas>
+    </div>
+
+    <script>
+        // 1. Szimulált adatok generálása (24 óra, 30 percenkénti bontásban)
+        const generateData = () => {
+            const data = [];
+            const now = new Date();
+            for (let i = 48; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 30 * 60000);
+                const hour = time.getHours();
+                
+                // Szimulált alvás logika: éjjel (20-07) kisebb zaj, kisebb fény
+                const isNight = hour >= 20 || hour <= 7;
+                data.push({
+                    t: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    noise: isNight ? Math.random() * 15 + 5 : Math.random() * 40 + 20,
+                    temp: 21 + Math.sin(i/5),
+                    lux: isNight ? (Math.random() > 0.9 ? 5 : 0.5) : Math.random() * 100 + 50
+                });
+            }
+            return data;
+        };
+
+        const mockData = generateData();
+
+        // 2. Grafikon kirajzolása
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: mockData.map(d => d.t),
+                datasets: [
+                    {
+                        label: 'Zajszint (%)',
+                        data: mockData.map(d => d.noise),
+                        borderColor: '#4a90e2',
+                        backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                        fill: true,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Fény (Lux)',
+                        data: mockData.map(d => d.lux),
+                        borderColor: '#f5a623',
+                        borderDash: [5, 5],
+                        fill: false,
+                        yAxisID: 'y1',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Zaj %' } },
+                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Lux' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
