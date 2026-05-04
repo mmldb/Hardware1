@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Analytics v1.7</title>
+    <title>Pro Analytics v1.8</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -13,72 +13,50 @@
         
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
 
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .date-display { font-size: 0.9rem; color: var(--primary); font-weight: 500; background: rgba(56, 189, 248, 0.1); padding: 4px 10px; border-radius: 6px; }
+
         .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
-        .card { 
-            background: var(--card); padding: 12px; border-radius: 10px; border: 2px solid transparent; 
-            cursor: pointer; transition: all 0.2s ease;
-        }
-        /* Aktív kártya stílusok */
-        .card.active[data-type="noise"] { border-color: var(--primary); }
-        .card.active[data-type="temp"] { border-color: var(--temp); }
-        .card.active[data-type="move"] { border-color: var(--accent); }
-        .card.active[data-type="lux"] { border-color: var(--lux); }
+        .card { background: var(--card); padding: 12px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; }
+        .card.active[data-idx="0"] { border-color: var(--primary); }
+        .card.active[data-idx="2"] { border-color: var(--temp); }
+        .card.active[data-idx="1"] { border-color: var(--accent); }
+        .card.active[data-idx="3"] { border-color: var(--lux); }
         
-        .card h3 { margin: 0; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; display: flex; align-items: center; }
+        .card h3 { margin: 0; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
         .card p { margin: 5px 0 0; font-size: 1.1rem; font-weight: 600; }
-        .dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 
-        /* Skála indikátorok a grafikon mellett */
-        .y-axis-guide {
-            display: flex; justify-content: space-between; font-size: 0.65rem; color: #64748b;
-            padding: 5px 10px; background: rgba(30, 41, 59, 0.5); border-radius: 5px; margin-bottom: 5px;
-        }
-        .guide-item { display: flex; align-items: center; gap: 4px; }
+        .minimap-wrapper { position: relative; width: 100%; height: 75px; background: var(--card); border-radius: 8px; margin-bottom: 15px; }
+        #view-indicator { position: absolute; top: 0; left: 0; height: 100%; background: rgba(56, 189, 248, 0.1); border: 2px solid var(--primary); pointer-events: none; border-radius: 4px; box-sizing: border-box; }
 
-        .minimap-wrapper { position: relative; width: 100%; height: 75px; background: var(--card); border-radius: 8px; margin-bottom: 15px; cursor: pointer; }
-        #view-indicator { 
-            position: absolute; top: 0; left: 0; height: 100%; width: 20%; 
-            background: rgba(56, 189, 248, 0.1); border: 2px solid var(--primary); 
-            pointer-events: none; border-radius: 4px; box-sizing: border-box;
-        }
+        .chart-viewport { width: 100%; overflow-x: auto; background: var(--card); border-radius: 12px; border: 1px solid var(--grid); -webkit-overflow-scrolling: touch; }
+        .chart-wrapper { width: 1500px; height: 320px; padding: 10px; position: relative; }
 
-        .chart-viewport {
-            width: 100%; overflow-x: auto; background: var(--card); border-radius: 12px;
-            border: 1px solid var(--grid); -webkit-overflow-scrolling: touch;
+        /* Jegyzet buborékok a grafikonon */
+        .event-marker { position: absolute; bottom: 40px; transform: translateX(-50%); background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; cursor: help; z-index: 10; }
+
+        /* Modal ablak a bevitelhez */
+        #event-modal { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--card); border: 1px solid var(--grid); padding: 20px; border-radius: 15px;
+            z-index: 100; box-shadow: 0 0 30px rgba(0,0,0,0.5); width: 80%; max-width: 300px;
         }
-        .chart-wrapper { width: 1500px; height: 320px; padding: 10px; }
+        #event-modal input { width: 100%; background: var(--bg); border: 1px solid var(--grid); color: white; padding: 8px; margin: 10px 0; border-radius: 5px; box-sizing: border-box; }
+        #event-modal button { background: var(--primary); border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="dashboard">
-        <div class="card active" onclick="toggleDataset(0)">
-            <h3><span class="dot" style="background: var(--primary)"></span>Zaj</h3>
-            <p id="live-noise">-- %</p>
-        </div>
-        <div class="card" onclick="toggleDataset(2)">
-            <h3><span class="dot" style="background: var(--temp)"></span>Hőmérséklet</h3>
-            <p id="live-temp">-- °C</p>
-        </div>
-        <div class="card active" onclick="toggleDataset(1)">
-            <h3><span class="dot" style="background: var(--accent)"></span>Mozgás</h3>
-            <p id="live-move">Nincs</p>
-        </div>
-        <div class="card" onclick="toggleDataset(3)">
-            <h3><span class="dot" style="background: var(--lux)"></span>Fény</h3>
-            <p id="live-lux">-- lux</p>
-        </div>
-    </div>
+    <header>
+        <h1>🌙 Analytics</h1>
+        <div class="date-display" id="current-date">2026. Május 04.</div>
+    </header>
 
-    <!-- Skála Útmutató -->
-    <div class="y-axis-guide">
-        <div class="guide-item" id="guide-left">
-            <span style="color: var(--temp)">Hő: 15-35°C</span>
-            <span style="color: var(--lux)">| Fény: 0-100lx</span>
-        </div>
-        <div class="guide-item" id="guide-right">
-            <span style="color: var(--primary)">Zaj: 0-100%</span>
-        </div>
+    <div class="dashboard">
+        <div class="card active" data-idx="0" onclick="toggleDataset(0)"><h3>Zaj</h3><p id="live-noise">-- %</p></div>
+        <div class="card" data-idx="2" onclick="toggleDataset(2)"><h3>Hőmérséklet</h3><p id="live-temp">-- °C</p></div>
+        <div class="card active" data-idx="1" onclick="toggleDataset(1)"><h3>Mozgás</h3><p id="live-move">Nincs</p></div>
+        <div class="card" data-idx="3" onclick="toggleDataset(3)"><h3>Fény</h3><p id="live-lux">-- lux</p></div>
     </div>
 
     <div class="minimap-wrapper" id="minimap-area">
@@ -87,24 +65,35 @@
     </div>
 
     <div class="chart-viewport" id="viewport">
-        <div class="chart-wrapper">
+        <div class="chart-wrapper" id="chart-parent">
             <canvas id="mainChart"></canvas>
+            <!-- Ide kerülnek majd a marker buborékok -->
         </div>
     </div>
 
+    <!-- Felugró ablak jegyzethez -->
+    <div id="event-modal">
+        <h3 id="modal-time" style="margin-top:0">Időpont: --</h3>
+        <input type="text" id="event-text" placeholder="Pl: Lázcsillapító 5ml">
+        <button onclick="saveEvent()">Mentés</button>
+        <button onclick="closeModal()" style="background:none; color:#64748b; margin-top:5px">Mégse</button>
+    </div>
+
     <script>
+        // Dátum kiírása
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('hu-HU', options);
+
         const generateData = () => {
             const data = []; const now = new Date();
             for (let i = 96; i >= 0; i--) {
                 const time = new Date(now.getTime() - i * 15 * 60000);
-                const hour = time.getHours();
-                const isNight = hour >= 21 || hour <= 6;
                 data.push({
                     t: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    noise: isNight ? (Math.random() * 8 + 5) : (Math.random() * 25 + 15),
-                    move: (isNight && Math.random() > 0.97) ? 35 : 0,
-                    temp: 21 + Math.sin(i/10) + (Math.random() * 0.2),
-                    lux: isNight ? 0.2 : (Math.random() * 50 + 10)
+                    noise: (Math.random() * 20 + 5),
+                    move: (Math.random() > 0.95) ? 30 : 0,
+                    temp: 21 + Math.random(),
+                    lux: Math.random() * 2
                 });
             }
             return data;
@@ -113,7 +102,7 @@
         const mockData = generateData();
         const viewport = document.getElementById('viewport');
         const indicator = document.getElementById('view-indicator');
-        const minimapArea = document.getElementById('minimap-area');
+        let selectedTimeIndex = null;
 
         // FŐ GRAFIKON
         const mainChart = new Chart(document.getElementById('mainChart'), {
@@ -121,7 +110,7 @@
             data: {
                 labels: mockData.map(d => d.t),
                 datasets: [
-                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.4, pointRadius: 0 },
+                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#38bdf8', fill: true, backgroundColor: 'rgba(56, 189, 248, 0.1)', tension: 0.4, pointRadius: 0 },
                     { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 4 },
                     { label: 'Hő', data: mockData.map(d => d.temp), borderColor: '#fbbf24', tension: 0.4, pointRadius: 0, hidden: true, yAxisID: 'y1' },
                     { label: 'Fény', data: mockData.map(d => d.lux), borderColor: '#a855f7', tension: 0.4, pointRadius: 0, hidden: true, yAxisID: 'y1' }
@@ -133,72 +122,74 @@
                     x: { ticks: { color: '#64748b', maxTicksLimit: 12 }, grid: { color: '#334155' } },
                     y: { position: 'right', grid: { color: '#334155' }, ticks: { color: '#64748b' }, beginAtZero: true, max: 100 },
                     y1: { position: 'left', display: false, min: 0, max: 100 }
+                },
+                // DUPLA KATTINTÁS FIGYELÉSE
+                onClick: (e) => {
+                    const points = mainChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+                    if (points.length) {
+                        selectedTimeIndex = points[0].index;
+                        openModal(mockData[selectedTimeIndex].t);
+                    }
                 }
             }
         });
 
-        // MINI-MAP (Ugyanazokkal a datasetekkel, mint a nagy)
+        // MINI-MAP
         const miniMap = new Chart(document.getElementById('miniMapChart'), {
             type: 'line',
             data: {
                 labels: mockData.map(d => d.t),
                 datasets: [
-                    { data: mockData.map(d => d.noise), borderColor: '#38bdf8', borderWidth: 1, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', pointRadius: 0, tension: 0.4 },
-                    { data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 1 },
-                    { data: mockData.map(d => d.temp), borderColor: '#fbbf24', borderWidth: 1, pointRadius: 0, tension: 0.4, hidden: true },
-                    { data: mockData.map(d => d.lux), borderColor: '#a855f7', borderWidth: 1, pointRadius: 0, tension: 0.4, hidden: true }
+                    { data: mockData.map(d => d.noise), borderColor: '#38bdf8', borderWidth: 1, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.05)', pointRadius: 0 },
+                    { data: mockData.map(d => d.move), backgroundColor: '#f43f5e', type: 'bar', barThickness: 1 }
                 ]
             },
-            options: { 
-                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
-                scales: { x: { display: false }, y: { display: false, min: 0, max: 100 } } 
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 0, max: 100 } } }
         });
 
-        // TOGGLE LOGIKA
-        function toggleDataset(index) {
-            const card = document.querySelectorAll('.card')[index];
-            const isVisible = mainChart.isDatasetVisible(index);
-
-            if (isVisible) {
-                mainChart.hide(index);
-                miniMap.hide(index);
-                card.classList.remove('active');
-            } else {
-                mainChart.show(index);
-                miniMap.show(index);
-                card.classList.add('active');
-            }
-
-            // Bal oldali Y skála indikálása
-            mainChart.options.scales.y1.display = (mainChart.isDatasetVisible(2) || mainChart.isDatasetVisible(3));
-            document.getElementById('guide-left').style.opacity = mainChart.options.scales.y1.display ? "1" : "0.3";
-            
-            mainChart.update();
-            miniMap.update();
+        // MODAL FUNKCIÓK
+        function openModal(time) {
+            document.getElementById('modal-time').innerText = "Időpont: " + time;
+            document.getElementById('event-modal').style.display = 'block';
         }
 
-        // NAVIGÁCIÓ
-        minimapArea.addEventListener('click', (e) => {
-            const rect = minimapArea.getBoundingClientRect();
-            const clickPercent = (e.clientX - rect.left) / rect.width;
-            viewport.scrollTo({ left: (viewport.scrollWidth * clickPercent) - (viewport.clientWidth / 2), behavior: 'smooth' });
-        });
+        function closeModal() {
+            document.getElementById('event-modal').style.display = 'none';
+            document.getElementById('event-text').value = '';
+        }
+
+        function saveEvent() {
+            const text = document.getElementById('event-text').value;
+            if(!text) return;
+
+            // Marker elhelyezése
+            const chartArea = mainChart.chartArea;
+            const xPos = mainChart.scales.x.getPixelForValue(mockData[selectedTimeIndex].t);
+            
+            const marker = document.createElement('div');
+            marker.className = 'event-marker';
+            marker.innerText = text;
+            marker.style.left = xPos + "px";
+            document.getElementById('chart-parent').appendChild(marker);
+
+            closeModal();
+        }
+
+        // TOGGLE & NAV (Maradt a régi)
+        function toggleDataset(index) {
+            const isVisible = mainChart.isDatasetVisible(index);
+            const card = document.querySelectorAll('.card')[index];
+            if (isVisible) { mainChart.hide(index); card.classList.remove('active'); } 
+            else { mainChart.show(index); card.classList.add('active'); }
+            mainChart.options.scales.y1.display = (mainChart.isDatasetVisible(2) || mainChart.isDatasetVisible(3));
+            mainChart.update();
+        }
 
         viewport.addEventListener('scroll', () => {
             const scrollPercent = viewport.scrollLeft / (viewport.scrollWidth - viewport.clientWidth);
-            const indicatorWidth = (viewport.clientWidth / viewport.scrollWidth) * 100;
-            indicator.style.width = indicatorWidth + "%";
-            indicator.style.left = (scrollPercent * (100 - indicatorWidth)) + "%";
+            indicator.style.width = (viewport.clientWidth / viewport.scrollWidth) * 100 + "%";
+            indicator.style.left = (scrollPercent * (100 - parseFloat(indicator.style.width))) + "%";
         });
-
-        setInterval(() => {
-            document.getElementById('live-noise').innerText = Math.floor(Math.random() * 15 + 5) + " %";
-            document.getElementById('live-temp').innerText = (21 + Math.random()).toFixed(1) + " °C";
-            document.getElementById('live-lux').innerText = (Math.random() * 2).toFixed(1) + " lux";
-        }, 3000);
-
-        window.onload = () => { viewport.dispatchEvent(new Event('scroll')); };
     </script>
 </body>
 </html>
