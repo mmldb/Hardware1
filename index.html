@@ -3,59 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Környezeti Napló - Gyerekszoba</title>
+    <title>Környezeti Napló - Görgethető</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #f4f7f6; --card: #ffffff; --primary: #4a90e2; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }
-        .card h3 { margin: 0; font-size: 0.9rem; color: #777; }
-        .card p { margin: 10px 0 0; font-size: 1.4rem; font-weight: bold; color: var(--primary); }
-        .chart-container { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1 { font-size: 1.5rem; margin-bottom: 20px; }
-        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; background: #e1f5fe; color: #01579b; margin-top: 10px; }
+        :root { --bg: #f0f2f5; --primary: #4a90e2; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        
+        /* Konténer a görgetéshez */
+        .chart-viewport {
+            width: 100%;
+            overflow-x: auto; /* Itt történik a varázslat: vízszintes görgetés */
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        /* A grafikon tényleges szélessége - jóval nagyobb, mint a képernyő */
+        .chart-wrapper {
+            width: 2000px; 
+            height: 400px;
+            padding: 10px;
+        }
+
+        .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card h3 { margin: 0; font-size: 0.8rem; color: #888; text-transform: uppercase; }
+        .card p { margin: 5px 0 0; font-size: 1.2rem; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
-    <h1>🌙 Gyerekszoba Monitoring</h1>
-
     <div class="dashboard">
-        <div class="card"><h3>Zajszint</h3><p id="live-noise">12%</p></div>
-        <div class="card"><h3>Hőmérséklet</h3><p id="live-temp">21.8°C</p></div>
-        <div class="card"><h3>Páratartalom</h3><p id="live-hum">48%</p></div>
-        <div class="card"><h3>Fényerő</h3><p id="live-lux">2 lux</p></div>
+        <div class="card"><h3>Zaj</h3><p>Csendes</p></div>
+        <div class="card"><h3>Mozgás</h3><p>Nincs</p></div>
     </div>
 
-    <div class="chart-container">
-        <canvas id="mainChart"></canvas>
+    <div class="chart-viewport">
+        <div class="chart-wrapper">
+            <canvas id="mainChart"></canvas>
+        </div>
     </div>
 
     <script>
-        // 1. Szimulált adatok generálása (24 óra, 30 percenkénti bontásban)
-        const generateData = () => {
+        const generateCleanData = () => {
             const data = [];
             const now = new Date();
-            for (let i = 48; i >= 0; i--) {
-                const time = new Date(now.getTime() - i * 30 * 60000);
+            // 24 óra, 15 perces bontásban = 96 adatpont
+            for (let i = 96; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 15 * 60000);
                 const hour = time.getHours();
-                
-                // Szimulált alvás logika: éjjel (20-07) kisebb zaj, kisebb fény
                 const isNight = hour >= 20 || hour <= 7;
+                
                 data.push({
                     t: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    noise: isNight ? Math.random() * 15 + 5 : Math.random() * 40 + 20,
-                    temp: 21 + Math.sin(i/5),
-                    lux: isNight ? (Math.random() > 0.9 ? 5 : 0.5) : Math.random() * 100 + 50
+                    noise: isNight ? (Math.random() * 10 + 5) : (Math.random() * 30 + 15),
+                    temp: 22 + Math.sin(i / 10) * 0.5,
+                    move: (isNight && Math.random() > 0.95) || (!isNight && Math.random() > 0.7) ? 40 : 0
                 });
             }
             return data;
         };
 
-        const mockData = generateData();
+        const mockData = generateCleanData();
 
-        // 2. Grafikon kirajzolása
         const ctx = document.getElementById('mainChart').getContext('2d');
         new Chart(ctx, {
             type: 'line',
@@ -68,24 +79,35 @@
                         borderColor: '#4a90e2',
                         backgroundColor: 'rgba(74, 144, 226, 0.1)',
                         fill: true,
-                        yAxisID: 'y',
+                        tension: 0.4, // Ettől lesznek szép simák a vonalak, nem szögletesek
+                        pointRadius: 0, // Eltüntetjük a pöttyöket a tisztább képért
                     },
                     {
-                        label: 'Fény (Lux)',
-                        data: mockData.map(d => d.lux),
-                        borderColor: '#f5a623',
-                        borderDash: [5, 5],
-                        fill: false,
-                        yAxisID: 'y1',
+                        label: 'Mozgás (Event)',
+                        data: mockData.map(d => d.move),
+                        borderColor: '#ff4757',
+                        backgroundColor: '#ff4757',
+                        type: 'bar', // A mozgás legyen oszlop, így jobban elkülönül
+                        barThickness: 3
                     }
                 ]
             },
             options: {
                 responsive: true,
-                interaction: { mode: 'index', intersect: false },
+                maintainAspectRatio: false,
                 scales: {
-                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Zaj %' } },
-                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Lux' } }
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 24 // Csak óránként írja ki az időt
+                        }
+                    },
+                    y: { beginAtZero: true, max: 100 }
+                },
+                plugins: {
+                    legend: { position: 'top' }
                 }
             }
         });
