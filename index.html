@@ -3,234 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0e11">
+    <meta name="description" content="Gyerekszobai környezeti napló és alvásmonitor prototípus.">
     <title>Room Pro Analytics</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg: #0b0e11; --card: #151921; --text: #e3e6e8;
-            --primary: #00d2ff; --accent: #ff3b30; --temp: #ffcc00; --lux: #af52de; --grid: #2a2e37;
-        }
-        
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .view-toggle { background: var(--card); border: 1px solid var(--grid); color: var(--text); padding: 6px 14px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* Kártyák a ref kép alapján */
-        .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-        .card { background: var(--card); padding: 16px; border-radius: 16px; border: 1px solid var(--grid); position: relative; }
-        .card.active[data-idx="0"] { border-left: 3px solid var(--primary); }
-        .card.active[data-idx="2"] { border-left: 3px solid var(--temp); }
-        .card.active[data-idx="1"] { border-left: 3px solid var(--accent); }
-        .card.active[data-idx="3"] { border-left: 3px solid var(--lux); }
-        
-        .card h3 { margin: 0; font-size: 0.65rem; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; }
-        .card p { margin: 8px 0 0; font-size: 1.2rem; font-weight: 600; }
-
-        /* Központi tű adatai - letisztult stílus */
-        .playhead-display { text-align: center; margin-bottom: 15px; }
-        .playhead-time { font-size: 2rem; font-weight: 300; color: #fff; margin-bottom: 5px; }
-        .playhead-stats { display: flex; justify-content: center; gap: 15px; font-size: 0.75rem; color: #8e8e93; }
-
-        .timeline-container { position: relative; width: 100%; background: var(--card); border-radius: 20px; border: 1px solid var(--grid); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .playhead { position: absolute; left: 50%; top: 50px; bottom: 30px; width: 1px; background: var(--primary); box-shadow: 0 0 15px rgba(0,210,255,0.6); z-index: 100; pointer-events: none; }
-        .add-event-btn { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); width: 32px; height: 32px; border-radius: 50%; background: var(--primary); border: none; color: #000; font-size: 1.5rem; font-weight: bold; cursor: pointer; z-index: 101; display: flex; align-items: center; justify-content: center; }
-
-        .chart-viewport { width: 100%; overflow-x: auto; scroll-behavior: auto; -webkit-overflow-scrolling: touch; }
-        .chart-wrapper { width: 3000px; height: 350px; padding: 0 50%; box-sizing: border-box; position: relative; }
-
-        /* Spektrum sorok sűrűbben */
-        .spectrum-view { display: none; flex-direction: column; gap: 8px; padding: 60px 0 30px 0; }
-        .spectrum-row { height: 30px; width: 100%; display: flex; background: #000; border-radius: 4px; border: 1px solid #111; }
-        .spec-pixel { flex: 1; height: 100%; }
-
-        .event-tag { position: absolute; top: 55px; transform: translateX(-50%); background: #fff; color: #000; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; z-index: 110; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 1px solid var(--grid); }
-
-        #event-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card); padding: 24px; border-radius: 24px; z-index: 1000; width: 85%; max-width: 320px; border: 1px solid var(--grid); box-shadow: 0 0 50px #000; }
-        #event-modal h3 { margin: 0 0 15px; font-weight: 400; color: var(--primary); }
-        input { width: 100%; background: #000; border: 1px solid var(--grid); color: #fff; padding: 14px; border-radius: 12px; margin-bottom: 20px; box-sizing: border-box; font-size: 1rem; }
-        .btn-main { background: var(--primary); border: none; color: #000; padding: 14px; border-radius: 12px; font-weight: 700; width: 100%; margin-bottom: 10px; font-size: 0.9rem; }
-    </style>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="app.js?v=2" defer></script>
 </head>
 <body>
-
     <header>
-        <div class="date-display" id="header-date">2026. Május 04.</div>
-        <button class="view-toggle" onclick="toggleViewMode()">Váltás: Spektrum</button>
+        <div class="date-display" id="header-date">--</div>
+        <button class="view-toggle" id="view-toggle" type="button">Váltás: Spektrum</button>
     </header>
 
-    <div class="dashboard">
-        <div class="card active" data-idx="0" onclick="toggleDataset(0)"><h3>Zajszint</h3><p id="live-noise">-- %</p></div>
-        <div class="card" data-idx="2" onclick="toggleDataset(2)"><h3>Hőmérséklet</h3><p id="live-temp">-- °C</p></div>
-        <div class="card active" data-idx="1" onclick="toggleDataset(1)"><h3>Mozgás</h3><p id="live-move">Stab.</p></div>
-        <div class="card" data-idx="3" onclick="toggleDataset(3)"><h3>Fényerő</h3><p id="live-lux">-- lx</p></div>
-    </div>
+    <main>
+        <section class="dashboard" aria-label="Aktuális mérési értékek">
+            <button class="card active" data-idx="0" type="button">
+                <h3>Zajszint</h3>
+                <p id="live-noise">-- %</p>
+            </button>
+            <button class="card" data-idx="2" type="button">
+                <h3>Hőmérséklet</h3>
+                <p id="live-temp">-- °C</p>
+            </button>
+            <button class="card active" data-idx="1" type="button">
+                <h3>Mozgás</h3>
+                <p id="live-move">Stab.</p>
+            </button>
+            <button class="card" data-idx="3" type="button">
+                <h3>Fényerő</h3>
+                <p id="live-lux">-- lx</p>
+            </button>
+        </section>
 
-    <div class="playhead-display">
-        <div class="playhead-time" id="center-time">00:00</div>
-        <div class="playhead-stats" id="center-stats">-- | -- | --</div>
-    </div>
+        <section class="playhead-display" aria-live="polite">
+            <div class="playhead-time" id="center-time">00:00</div>
+            <div class="playhead-stats" id="center-stats">-- | -- | --</div>
+        </section>
 
-    <div class="timeline-container">
-        <button class="add-event-btn" onclick="openEventModal()">+</button>
-        <div class="playhead"></div>
-        <div class="chart-viewport" id="viewport">
-            <div class="chart-wrapper" id="chart-holder">
-                <canvas id="mainChart"></canvas>
-                <div id="spectrum-container" class="spectrum-view">
-                    <div class="spectrum-row" id="row-noise"></div>
-                    <div class="spectrum-row" id="row-temp"></div>
-                    <div class="spectrum-row" id="row-lux"></div>
-                    <div class="spectrum-row" id="row-move"></div>
+        <section class="timeline-container" aria-label="Idővonal">
+            <button class="add-event-btn" id="add-event-btn" type="button" aria-label="Esemény hozzáadása">+</button>
+            <div class="playhead" aria-hidden="true"></div>
+            <div class="chart-viewport" id="viewport">
+                <div class="chart-wrapper" id="chart-holder">
+                    <canvas id="mainChart"></canvas>
+                    <div id="spectrum-container" class="spectrum-view" aria-hidden="true">
+                        <div class="spectrum-row" id="row-noise"></div>
+                        <div class="spectrum-row" id="row-temp"></div>
+                        <div class="spectrum-row" id="row-lux"></div>
+                        <div class="spectrum-row" id="row-move"></div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
-    <div id="event-modal">
-        <h3 id="modal-time-label">00:00</h3>
-        <input type="text" id="event-input" placeholder="Mi történt?">
-        <button class="btn-main" onclick="saveEvent()">Rögzítés</button>
-        <button id="del-btn" onclick="deleteEvent()" style="background:var(--accent); border:none; color:#fff; padding:10px; border-radius:12px; width:100%; margin-bottom:10px; font-weight:700; display:none">Törlés</button>
-        <button onclick="closeModal()" style="background:none; border:none; color:#8e8e93; width:100%; font-size:0.8rem">Mégse</button>
-    </div>
-
-    <script>
-        const viewport = document.getElementById('viewport');
-        const timeDisplay = document.getElementById('center-time');
-        const statsDisplay = document.getElementById('center-stats');
-        let events = [];
-        let viewMode = 'chart';
-        window.currentIdx = 0;
-
-        const generateData = () => {
-            const data = []; const now = new Date();
-            for (let i = 240; i >= 0; i--) {
-                const time = new Date(now.getTime() - i * 6 * 60000);
-                data.push({
-                    t: time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    noise: Math.random() * 20 + 5,
-                    temp: 21 + Math.random() * 2,
-                    lux: Math.random() * 3,
-                    move: Math.random() > 0.98 ? 60 : 0
-                });
-            }
-            return data;
-        };
-        const mockData = generateData();
-
-        const mainChart = new Chart(document.getElementById('mainChart'), {
-            type: 'line',
-            data: {
-                labels: mockData.map(d => d.t),
-                datasets: [
-                    { label: 'Zaj', data: mockData.map(d => d.noise), borderColor: '#00d2ff', fill: true, backgroundColor: 'rgba(0, 210, 255, 0.05)', tension: 0.4, pointRadius: 0 },
-                    { label: 'Mozgás', data: mockData.map(d => d.move), backgroundColor: '#ff3b30', type: 'bar', barThickness: 3 },
-                    { label: 'Hő', data: mockData.map(d => (d.temp - 15) * 5), borderColor: '#ffcc00', hidden: true, tension: 0.4, pointRadius: 0 },
-                    { label: 'Fény', data: mockData.map(d => d.lux * 10), borderColor: '#af52de', hidden: true, tension: 0.4, pointRadius: 0 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    x: { grid: { color: '#2a2e37' }, ticks: { color: '#8e8e93', font: { size: 10 } } },
-                    y: { position: 'right', min: 0, max: 100, grid: { color: '#2a2e37' }, ticks: { color: '#8e8e93', font: { size: 10 } } }
-                }
-            }
-        });
-
-        function buildSpectrum() {
-            const rows = { noise: '0, 210, 255', temp: '255, 204, 0', lux: '175, 82, 222', move: '255, 59, 48' };
-            Object.keys(rows).forEach(key => {
-                const el = document.getElementById(`row-${key}`);
-                el.innerHTML = '';
-                mockData.forEach(d => {
-                    const p = document.createElement('div');
-                    p.className = 'spec-pixel';
-                    let val = key === 'temp' ? (d.temp - 18) / 10 : d[key] / 100;
-                    p.style.backgroundColor = `rgba(${rows[key]}, ${Math.min(val, 1)})`;
-                    el.appendChild(p);
-                });
-            });
-        }
-
-        viewport.addEventListener('scroll', () => {
-            const scrollPercent = viewport.scrollLeft / (viewport.scrollWidth - viewport.clientWidth);
-            const index = Math.min(Math.max(Math.round(scrollPercent * (mockData.length - 1)), 0), mockData.length - 1);
-            const d = mockData[index];
-            if(d) {
-                timeDisplay.innerText = d.t;
-                window.currentIdx = index;
-                statsDisplay.innerHTML = `<span style="color:var(--primary)">${Math.round(d.noise)}%</span> | <span style="color:var(--temp)">${d.temp.toFixed(1)}°C</span> | <span style="color:var(--lux)">${Math.round(d.lux)}lx</span>`;
-            }
-        });
-
-        function toggleViewMode() {
-            const btn = document.querySelector('.view-toggle');
-            if(viewMode === 'chart') {
-                viewMode = 'spectrum'; btn.innerText = 'Váltás: Grafikon';
-                document.getElementById('mainChart').style.display = 'none';
-                document.getElementById('spectrum-container').style.display = 'flex';
-                buildSpectrum();
-            } else {
-                viewMode = 'chart'; btn.innerText = 'Váltás: Spektrum';
-                document.getElementById('mainChart').style.display = 'block';
-                document.getElementById('spectrum-container').style.display = 'none';
-            }
-            setTimeout(renderEvents, 50);
-        }
-
-        function openEventModal(id = null) {
-            activeEventId = id;
-            if(id !== null) {
-                const ev = events.find(e => e.id === id);
-                document.getElementById('event-input').value = ev.text;
-                document.getElementById('modal-time-label').innerText = mockData[ev.idx].t;
-                document.getElementById('del-btn').style.display = 'block';
-            } else {
-                document.getElementById('event-input').value = '';
-                document.getElementById('modal-time-label').innerText = mockData[window.currentIdx].t;
-                document.getElementById('del-btn').style.display = 'none';
-            }
-            document.getElementById('event-modal').style.display = 'block';
-        }
-
-        function saveEvent() {
-            const txt = document.getElementById('event-input').value;
-            if(!txt) return;
-            // FIX: Mindig a tű alatti indexet mentjük, függetlenül minden mástól
-            if(activeEventId) { events.find(e => e.id === activeEventId).text = txt; } 
-            else { events.push({ id: Date.now(), idx: window.currentIdx, text: txt }); }
-            renderEvents(); closeModal();
-        }
-
-        function renderEvents() {
-            document.querySelectorAll('.event-tag').forEach(t => t.remove());
-            events.forEach(ev => {
-                // Kiszámoljuk a pontos pixelpozíciót az indexből
-                const x = (ev.idx / (mockData.length - 1)) * 3000;
-                const tag = document.createElement('div');
-                tag.className = 'event-tag'; tag.innerText = ev.text; tag.style.left = x + "px";
-                tag.onclick = (e) => { e.stopPropagation(); openEventModal(ev.id); };
-                document.getElementById('chart-holder').appendChild(tag);
-            });
-        }
-
-        function toggleDataset(idx) {
-            const cards = document.querySelectorAll('.card');
-            if(mainChart.isDatasetVisible(idx)) { mainChart.hide(idx); cards[idx].classList.remove('active'); } 
-            else { mainChart.show(idx); cards[idx].classList.add('active'); }
-            mainChart.update();
-        }
-
-        function deleteEvent() { events = events.filter(e => e.id !== activeEventId); renderEvents(); closeModal(); }
-        function closeModal() { document.getElementById('event-modal').style.display = 'none'; }
-
-        window.onload = () => { 
-            viewport.scrollLeft = viewport.scrollWidth; 
-            setTimeout(() => viewport.dispatchEvent(new Event('scroll')), 200);
-        };
-    </script>
+    <div class="modal-backdrop" id="modal-backdrop" hidden></div>
+    <dialog id="event-modal">
+        <form method="dialog" id="event-form">
+            <h3 id="modal-time-label">00:00</h3>
+            <input type="text" id="event-input" placeholder="Mi történt?" autocomplete="off">
+            <button class="btn-main" id="save-event-btn" type="submit">Rögzítés</button>
+            <button class="btn-danger" id="delete-event-btn" type="button" hidden>Törlés</button>
+            <button class="btn-ghost" id="cancel-event-btn" type="button">Mégse</button>
+        </form>
+    </dialog>
 </body>
 </html>

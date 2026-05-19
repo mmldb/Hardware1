@@ -1,0 +1,320 @@
+:root {
+    --bg: #0b0e11;
+    --card: #151921;
+    --text: #e3e6e8;
+    --muted: #8e8e93;
+    --primary: #00d2ff;
+    --accent: #ff3b30;
+    --temp: #ffcc00;
+    --lux: #af52de;
+    --grid: #2a2e37;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 15px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.date-display {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.view-toggle {
+    min-height: 32px;
+    border: 1px solid var(--grid);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.card {
+    min-width: 0;
+    min-height: 82px;
+    border: 1px solid var(--grid);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    padding: 16px;
+    cursor: pointer;
+    position: relative;
+    text-align: left;
+}
+
+.card.active[data-idx="0"] {
+    border-left: 3px solid var(--primary);
+}
+
+.card.active[data-idx="1"] {
+    border-left: 3px solid var(--accent);
+}
+
+.card.active[data-idx="2"] {
+    border-left: 3px solid var(--temp);
+}
+
+.card.active[data-idx="3"] {
+    border-left: 3px solid var(--lux);
+}
+
+.card h3 {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card p {
+    margin: 8px 0 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.playhead-display {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.playhead-time {
+    margin-bottom: 5px;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0;
+}
+
+.playhead-stats {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
+.timeline-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--grid);
+    border-radius: 8px;
+    background: var(--card);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.playhead {
+    position: absolute;
+    top: 50px;
+    bottom: 30px;
+    left: 50%;
+    z-index: 100;
+    width: 1px;
+    background: var(--primary);
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.6);
+    pointer-events: none;
+}
+
+.add-event-btn {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    transform: translateX(-50%);
+    border: 0;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #000;
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.chart-viewport {
+    width: 100%;
+    overflow-x: auto;
+    scroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chart-wrapper {
+    position: relative;
+    width: 3000px;
+    height: 350px;
+    padding: 0 50%;
+}
+
+.spectrum-view {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 60px 0 30px;
+}
+
+.spectrum-view.active {
+    display: flex;
+}
+
+.spectrum-row {
+    display: flex;
+    width: 100%;
+    height: 30px;
+    border: 1px solid #111;
+    border-radius: 4px;
+    background: #000;
+}
+
+.spec-pixel {
+    flex: 1;
+    height: 100%;
+}
+
+.event-tag {
+    position: absolute;
+    top: 55px;
+    z-index: 110;
+    max-width: 180px;
+    transform: translateX(-50%);
+    overflow: hidden;
+    border: 1px solid var(--grid);
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    color: #000;
+    cursor: pointer;
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+#event-modal {
+    width: min(85vw, 320px);
+    border: 1px solid var(--grid);
+    border-radius: 8px;
+    background: var(--card);
+    box-shadow: 0 0 50px #000;
+    color: var(--text);
+    padding: 24px;
+}
+
+#event-modal::backdrop {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+#event-modal h3 {
+    margin: 0 0 15px;
+    color: var(--primary);
+    font-weight: 400;
+}
+
+input {
+    width: 100%;
+    margin-bottom: 20px;
+    border: 1px solid var(--grid);
+    border-radius: 8px;
+    background: #000;
+    color: #fff;
+    padding: 14px;
+    font-size: 1rem;
+}
+
+.btn-main,
+.btn-danger,
+.btn-ghost {
+    width: 100%;
+    min-height: 42px;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.btn-main {
+    margin-bottom: 10px;
+    background: var(--primary);
+    color: #000;
+}
+
+.btn-danger {
+    margin-bottom: 10px;
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 520px) {
+    body {
+        padding: 12px;
+    }
+
+    .card {
+        padding: 14px;
+    }
+
+    .card p {
+        font-size: 1.05rem;
+    }
+
+    .playhead-time {
+        font-size: 1.75rem;
+    }
+}
