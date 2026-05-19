@@ -8,23 +8,28 @@
     --primary: #00d2ff;
     --accent: #ff3b30;
     --temp: #ffcc00;
+    --humidity: #00a878;
     --lux: #af52de;
     --green: #40ff9f;
     --grid: rgba(184, 201, 176, 0.15);
 }
 
 html {
+    min-height: 100%;
     background: #000 !important;
 }
 
 body {
-    min-height: 100vh;
+    min-height: 100%;
     padding: 14px;
-    overflow: hidden;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
     background-color: #000 !important;
     background-image: none !important;
     color: var(--text);
     font-family: "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, monospace;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
 }
 
 body::after {
@@ -94,7 +99,7 @@ h1 {
     grid-template-columns: repeat(3, 1fr);
     gap: 1px;
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     border: 1px solid rgba(231, 236, 232, 0.12);
     border-radius: 6px;
     background: rgba(231, 236, 232, 0.08);
@@ -103,24 +108,24 @@ h1 {
 .status-strip span {
     min-width: 0;
     background: rgba(8, 10, 10, 0.88);
-    padding: 9px 8px;
+    padding: 8px;
     text-align: center;
 }
 
 .dashboard {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 14px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 10px;
 }
 
 .card {
-    min-height: 90px;
+    min-height: 68px;
     border: 1px solid rgba(231, 236, 232, 0.13);
     border-radius: 6px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
         var(--panel);
-    padding: 12px;
+    padding: 9px;
 }
 
 .card::after {
@@ -128,7 +133,7 @@ h1 {
     right: 10px;
     bottom: 9px;
     left: 10px;
-    height: 3px;
+    height: 2px;
     border-radius: 999px;
     background: var(--faint);
     content: "";
@@ -154,6 +159,11 @@ h1 {
     box-shadow: inset 0 -3px 0 rgba(175, 82, 222, 0.42);
 }
 
+.card.active[data-idx="4"] {
+    border-color: rgba(0, 168, 120, 0.5);
+    box-shadow: inset 0 -3px 0 rgba(0, 168, 120, 0.42);
+}
+
 .card.active[data-idx="0"]::after {
     background: var(--primary);
 }
@@ -170,28 +180,32 @@ h1 {
     background: var(--lux);
 }
 
+.card.active[data-idx="4"]::after {
+    background: var(--humidity);
+}
+
 .card h3 {
-    margin: 5px 0 0;
+    margin: 3px 0 0;
     color: var(--muted);
-    font-size: 0.65rem;
+    font-size: 0.6rem;
 }
 
 .card p {
-    margin: 10px 0 0;
-    font-size: clamp(1rem, 3.4vw, 1.38rem);
+    margin: 6px 0 0;
+    font-size: clamp(0.92rem, 2.4vw, 1.14rem);
     font-weight: 800;
 }
 
 .playhead-display {
     display: grid;
     justify-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .playhead-time {
     margin-top: 2px;
     color: var(--green);
-    font-size: clamp(1.8rem, 8vw, 2.7rem);
+    font-size: clamp(1.55rem, 6.5vw, 2.35rem);
     font-weight: 800;
     letter-spacing: 0.02em;
     text-shadow: 0 0 18px rgba(64, 255, 159, 0.24);
@@ -246,8 +260,14 @@ h1 {
     font-size: 1.25rem;
 }
 
+.chart-viewport {
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+}
+
 .chart-wrapper {
-    height: 390px;
+    height: 340px;
 }
 
 #mainChart {
@@ -255,12 +275,12 @@ h1 {
 }
 
 .spectrum-view {
-    gap: 7px;
-    padding: 74px 0 32px;
+    gap: 6px;
+    padding: 66px 0 28px;
 }
 
 .spectrum-row {
-    height: 46px;
+    height: 36px;
     overflow: hidden;
     border-top: 1px solid rgba(255, 255, 255, 0.09);
     border-bottom: 1px solid rgba(0, 0, 0, 0.8);
@@ -309,7 +329,7 @@ input {
 
 @media (max-width: 720px) {
     .dashboard {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
@@ -330,8 +350,12 @@ input {
     }
 
     .card {
-        min-height: 84px;
-        padding: 11px;
+        min-height: 62px;
+        padding: 8px;
+    }
+
+    .chart-wrapper {
+        height: 315px;
     }
 
     .timeline-head {
