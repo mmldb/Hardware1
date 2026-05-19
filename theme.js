@@ -7,6 +7,7 @@
             noise: { id: "row-noise", colors: ["#13c8ff", "#113fd8", "#ffd6d6"], value: (d) => (d.n ?? d.noise ?? 0) / 72 },
             temp: { id: "row-temp", colors: ["#ffc400", "#ff7a00", "#ff1515"], value: (d) => ((d.t ?? d.temp ?? 21) - 20.4) / 3.4 },
             humidity: { id: "row-humidity", colors: ["#06472b", "#00a878", "#ffd6d6"], value: (d) => ((d.h ?? d.humidity ?? 45) - 38) / 24 },
+            pressure: { id: "row-pressure", colors: ["#210006", "#ffb8c5", "#ffd6d6"], value: (d) => ((d.p ?? d.pressure ?? 1013) - 1005) / 18 },
             lux: { id: "row-lux", colors: ["#ffb8c5", "#ff40b6", "#2a4dff"], value: (d) => (d.l ?? d.lux ?? 0) / 3 },
             move: { id: "row-move", colors: ["#06472b", "#00a878", "#ff3b30"], value: (d) => (d.m || d.move ? 1 : 0.05) }
         };
