@@ -1,9 +1,11 @@
-const CACHE_NAME = "room-pro-v2";
+const CACHE_NAME = "room-pro-v4";
 const APP_SHELL = [
     "./",
     "index.html",
     "styles.css",
+    "theme.css",
     "app.js",
+    "theme.js",
     "manifest.json",
     "icon.svg"
 ];
