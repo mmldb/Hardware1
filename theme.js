@@ -2,7 +2,7 @@
     const originalBuildSpectrum = window.buildSpectrum;
     const eventPositions = new Map();
 
-    window.buildSpectrum = function buildThemedSpectrum() {
+    function buildThemedSpectrum() {
         const rows = {
             noise: { id: "row-noise", colors: ["#13c8ff", "#113fd8", "#ffd6d6"], value: (d) => (d.n ?? d.noise ?? 0) / 72 },
             temp: { id: "row-temp", colors: ["#ffc400", "#ff7a00", "#ff1515"], value: (d) => ((d.t ?? d.temp ?? 21) - 20.4) / 3.4 },
@@ -34,7 +34,15 @@
         if (!data.length && typeof originalBuildSpectrum === "function") {
             originalBuildSpectrum();
         }
-    };
+    }
+
+    window.buildSpectrum = buildThemedSpectrum;
+
+    try {
+        buildSpectrum = buildThemedSpectrum;
+    } catch (error) {
+        window.buildSpectrum = buildThemedSpectrum;
+    }
 
     const originalRenderEvents = window.renderEvents;
 
