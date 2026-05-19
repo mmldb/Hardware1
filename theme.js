@@ -2,10 +2,11 @@
     const originalBuildSpectrum = window.buildSpectrum;
     const eventPositions = new Map();
 
-    function buildThemedSpectrum() {
+    window.buildSpectrum = function buildThemedSpectrum() {
         const rows = {
             noise: { id: "row-noise", colors: ["#13c8ff", "#113fd8", "#ffd6d6"], value: (d) => (d.n ?? d.noise ?? 0) / 72 },
             temp: { id: "row-temp", colors: ["#ffc400", "#ff7a00", "#ff1515"], value: (d) => ((d.t ?? d.temp ?? 21) - 20.4) / 3.4 },
+            humidity: { id: "row-humidity", colors: ["#06472b", "#00a878", "#ffd6d6"], value: (d) => ((d.h ?? d.humidity ?? 45) - 38) / 24 },
             lux: { id: "row-lux", colors: ["#ffb8c5", "#ff40b6", "#2a4dff"], value: (d) => (d.l ?? d.lux ?? 0) / 3 },
             move: { id: "row-move", colors: ["#06472b", "#00a878", "#ff3b30"], value: (d) => (d.m || d.move ? 1 : 0.05) }
         };
@@ -34,15 +35,7 @@
         if (!data.length && typeof originalBuildSpectrum === "function") {
             originalBuildSpectrum();
         }
-    }
-
-    window.buildSpectrum = buildThemedSpectrum;
-
-    try {
-        buildSpectrum = buildThemedSpectrum;
-    } catch (error) {
-        window.buildSpectrum = buildThemedSpectrum;
-    }
+    };
 
     const originalRenderEvents = window.renderEvents;
 
@@ -61,6 +54,10 @@
 
     document.addEventListener("DOMContentLoaded", () => {
         requestAnimationFrame(() => {
+            if (!window.Chart) {
+                return;
+            }
+
             const chart = findChart();
             if (!chart) {
                 return;
