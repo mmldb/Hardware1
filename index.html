@@ -3,47 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0b0e11">
+    <meta name="theme-color" content="#070808">
     <meta name="description" content="Gyerekszobai környezeti napló és alvásmonitor prototípus.">
     <title>Room Pro Analytics</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="theme.css?v=1">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="app.js?v=2" defer></script>
+    <script src="app.js?v=3" defer></script>
+    <script src="theme.js?v=1" defer></script>
 </head>
 <body>
-    <header>
-        <div class="date-display" id="header-date">--</div>
-        <button class="view-toggle" id="view-toggle" type="button">Váltás: Spektrum</button>
+    <header class="topbar">
+        <div class="brand-block">
+            <div class="brand-kicker">ROOM PRO / ENV LOG</div>
+            <h1>Környezeti Napló</h1>
+        </div>
+        <div class="header-tools">
+            <div class="date-display" id="header-date">--</div>
+            <button class="view-toggle" id="view-toggle" type="button">Váltás: Spektrum</button>
+        </div>
     </header>
 
     <main>
+        <section class="status-strip" aria-label="Rendszer állapot">
+            <span>LIVE MOCK</span>
+            <span>24H WINDOW</span>
+            <span>INDEX LOCK</span>
+        </section>
+
         <section class="dashboard" aria-label="Aktuális mérési értékek">
             <button class="card active" data-idx="0" type="button">
+                <span class="metric-code">N-01</span>
                 <h3>Zajszint</h3>
                 <p id="live-noise">-- %</p>
             </button>
             <button class="card" data-idx="2" type="button">
+                <span class="metric-code">T-02</span>
                 <h3>Hőmérséklet</h3>
                 <p id="live-temp">-- °C</p>
             </button>
             <button class="card active" data-idx="1" type="button">
+                <span class="metric-code">M-03</span>
                 <h3>Mozgás</h3>
                 <p id="live-move">Stab.</p>
             </button>
             <button class="card" data-idx="3" type="button">
+                <span class="metric-code">L-04</span>
                 <h3>Fényerő</h3>
                 <p id="live-lux">-- lx</p>
             </button>
         </section>
 
         <section class="playhead-display" aria-live="polite">
+            <div class="playhead-label">PLAYHEAD</div>
             <div class="playhead-time" id="center-time">00:00</div>
             <div class="playhead-stats" id="center-stats">-- | -- | --</div>
         </section>
 
         <section class="timeline-container" aria-label="Idővonal">
+            <div class="timeline-head">
+                <span>SENSOR SPECTRUM</span>
+                <span>SCROLL UNDER PIN</span>
+            </div>
             <button class="add-event-btn" id="add-event-btn" type="button" aria-label="Esemény hozzáadása">+</button>
             <div class="playhead" aria-hidden="true"></div>
             <div class="chart-viewport" id="viewport">
