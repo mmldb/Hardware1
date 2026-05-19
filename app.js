@@ -51,6 +51,7 @@ function cacheElements() {
     elements.liveNoise = document.getElementById("live-noise");
     elements.liveTemp = document.getElementById("live-temp");
     elements.liveHumidity = document.getElementById("live-humidity");
+    elements.livePressure = document.getElementById("live-pressure");
     elements.liveMove = document.getElementById("live-move");
     elements.liveLux = document.getElementById("live-lux");
 }
@@ -95,6 +96,7 @@ function generateData() {
             n: Math.round(Math.random() * 18 + 6 + noiseSpike),
             t: Number((21.4 + circadian * 0.45 + Math.random() * 1.1).toFixed(1)),
             h: Number((45 + Math.random() * 8).toFixed(1)),
+            p: Number((1013 + circadian * 2.4 + Math.random() * 4).toFixed(1)),
             l: Number((Math.random() * 3).toFixed(1)),
             m: movement
         });
@@ -148,6 +150,15 @@ function createChart() {
                     label: "Para",
                     data: state.mockData.map((d) => d.h),
                     borderColor: "#00a878",
+                    hidden: true,
+                    tension: 0.22,
+                    pointRadius: 0,
+                    borderWidth: 1.5
+                },
+                {
+                    label: "Legnyomas",
+                    data: state.mockData.map((d) => (d.p - 980) * 2),
+                    borderColor: "#ffd6d6",
                     hidden: true,
                     tension: 0.22,
                     pointRadius: 0,
@@ -211,11 +222,12 @@ function updateFromIndex(index) {
     window.currentIdx = index;
 
     elements.timeDisplay.textContent = d.label;
-    elements.statsDisplay.innerHTML = `<span style="color:var(--primary)">N ${d.n}%</span> | <span style="color:var(--temp)">T ${d.t.toFixed(1)} °C</span> | <span style="color:var(--humidity)">H ${d.h.toFixed(0)}%</span> | <span style="color:var(--lux)">L ${Math.round(d.l)} lx</span>`;
+    elements.statsDisplay.innerHTML = `<span style="color:var(--primary)">N ${d.n}%</span> | <span style="color:var(--temp)">T ${d.t.toFixed(1)} °C</span> | <span style="color:var(--humidity)">H ${d.h.toFixed(0)}%</span> | <span style="color:var(--pressure)">P ${d.p.toFixed(0)} hPa</span> | <span style="color:var(--lux)">L ${Math.round(d.l)} lx</span>`;
 
     elements.liveNoise.textContent = `${d.n} %`;
     elements.liveTemp.textContent = `${d.t.toFixed(1)} °C`;
     elements.liveHumidity.textContent = `${d.h.toFixed(0)} %`;
+    elements.livePressure.textContent = `${d.p.toFixed(0)} hPa`;
     elements.liveMove.textContent = d.m ? "Mozgás" : "Stab.";
     elements.liveLux.textContent = `${d.l.toFixed(1)} lx`;
 }
@@ -244,6 +256,7 @@ function buildSpectrum() {
         noise: { id: "row-noise", hue: "190", hot: "#fff8b7", value: (d) => d.n / 72 },
         temp: { id: "row-temp", hue: "42", hot: "#ff3b30", value: (d) => (d.t - 20.4) / 3.4 },
         humidity: { id: "row-humidity", hue: "154", hot: "#ffd6d6", value: (d) => (d.h - 38) / 24 },
+        pressure: { id: "row-pressure", hue: "350", hot: "#ffd6d6", value: (d) => (d.p - 1005) / 18 },
         lux: { id: "row-lux", hue: "278", hot: "#ff7edb", value: (d) => d.l / 3 },
         move: { id: "row-move", hue: "4", hot: "#ff3b30", value: (d) => (d.m ? 1 : 0.05) }
     };
