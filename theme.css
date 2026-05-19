@@ -1,5 +1,5 @@
 :root {
-    --bg: #070808;
+    --bg: #000;
     --panel: #0d0f10;
     --panel-2: #111415;
     --text: #e7ece8;
@@ -14,20 +14,22 @@
 }
 
 html {
-    background: var(--bg);
+    background: #000 !important;
 }
 
 body {
     min-height: 100vh;
     padding: 14px;
     overflow: hidden;
-    background: #000;
+    background-color: #000 !important;
+    background-image: none !important;
     color: var(--text);
     font-family: "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, monospace;
 }
 
 body::after {
-    content: none;
+    content: none !important;
+    display: none !important;
 }
 
 button {
