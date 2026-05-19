@@ -8,11 +8,11 @@
     <title>Room Pro Analytics</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=4">
-    <link rel="stylesheet" href="theme.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="theme.css?v=6">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="app.js?v=6" defer></script>
-    <script src="theme.js?v=4" defer></script>
+    <script src="app.js?v=7" defer></script>
+    <script src="theme.js?v=5" defer></script>
 </head>
 <body>
     <header class="topbar">
@@ -49,13 +49,18 @@
                 <h3>Pára</h3>
                 <p id="live-humidity">-- %</p>
             </button>
+            <button class="card" data-idx="5" type="button">
+                <span class="metric-code">P-04</span>
+                <h3>Légny.</h3>
+                <p id="live-pressure">-- hPa</p>
+            </button>
             <button class="card active" data-idx="1" type="button">
-                <span class="metric-code">M-04</span>
+                <span class="metric-code">M-05</span>
                 <h3>Mozgás</h3>
                 <p id="live-move">Stab.</p>
             </button>
             <button class="card" data-idx="3" type="button">
-                <span class="metric-code">L-05</span>
+                <span class="metric-code">L-06</span>
                 <h3>Fény</h3>
                 <p id="live-lux">-- lx</p>
             </button>
@@ -81,6 +86,7 @@
                         <div class="spectrum-row" id="row-noise"></div>
                         <div class="spectrum-row" id="row-temp"></div>
                         <div class="spectrum-row" id="row-humidity"></div>
+                        <div class="spectrum-row" id="row-pressure"></div>
                         <div class="spectrum-row" id="row-lux"></div>
                         <div class="spectrum-row" id="row-move"></div>
                     </div>
