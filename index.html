@@ -2,17 +2,17 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#070808">
     <meta name="description" content="Gyerekszobai környezeti napló és alvásmonitor prototípus.">
     <title>Room Pro Analytics</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=3">
-    <link rel="stylesheet" href="theme.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="theme.css?v=5">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="app.js?v=4" defer></script>
-    <script src="theme.js?v=3" defer></script>
+    <script src="app.js?v=6" defer></script>
+    <script src="theme.js?v=4" defer></script>
 </head>
 <body>
     <header class="topbar">
@@ -36,22 +36,27 @@
         <section class="dashboard" aria-label="Aktuális mérési értékek">
             <button class="card active" data-idx="0" type="button">
                 <span class="metric-code">N-01</span>
-                <h3>Zajszint</h3>
+                <h3>Zaj</h3>
                 <p id="live-noise">-- %</p>
             </button>
             <button class="card" data-idx="2" type="button">
                 <span class="metric-code">T-02</span>
-                <h3>Hőmérséklet</h3>
+                <h3>Hő</h3>
                 <p id="live-temp">-- °C</p>
             </button>
+            <button class="card" data-idx="4" type="button">
+                <span class="metric-code">H-03</span>
+                <h3>Pára</h3>
+                <p id="live-humidity">-- %</p>
+            </button>
             <button class="card active" data-idx="1" type="button">
-                <span class="metric-code">M-03</span>
+                <span class="metric-code">M-04</span>
                 <h3>Mozgás</h3>
                 <p id="live-move">Stab.</p>
             </button>
             <button class="card" data-idx="3" type="button">
-                <span class="metric-code">L-04</span>
-                <h3>Fényerő</h3>
+                <span class="metric-code">L-05</span>
+                <h3>Fény</h3>
                 <p id="live-lux">-- lx</p>
             </button>
         </section>
@@ -75,6 +80,7 @@
                     <div id="spectrum-container" class="spectrum-view" aria-hidden="true">
                         <div class="spectrum-row" id="row-noise"></div>
                         <div class="spectrum-row" id="row-temp"></div>
+                        <div class="spectrum-row" id="row-humidity"></div>
                         <div class="spectrum-row" id="row-lux"></div>
                         <div class="spectrum-row" id="row-move"></div>
                     </div>
